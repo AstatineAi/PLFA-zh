@@ -22,3 +22,4 @@
 /_site/
 /dist-newstyle/
 /node_modules/
+/.direnv/
