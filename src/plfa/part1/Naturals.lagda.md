@@ -145,7 +145,8 @@ Write out `7` in longhand.
 
 
 ```agda
--- 请将代码写在此处
+seven : ℕ
+seven = suc (suc (suc (suc (suc (suc (suc zero))))))
 ```
 
 <!--
@@ -854,7 +855,21 @@ Compute `3 + 4`, writing out your reasoning as a chain of equations, using the e
 
 
 ```agda
--- 请将代码写在此处
+threePlusFour : 3 + 4 ≡ 7
+threePlusFour = 
+  begin
+    3 + 4
+  ≡⟨⟩
+    suc (2 + 4)
+  ≡⟨⟩
+    suc (suc (1 + 4))
+  ≡⟨⟩
+    suc (suc (suc (0 + 4)))
+  ≡⟨⟩
+    suc (suc (suc 4))
+  ≡⟨⟩
+    7
+  ∎
 ```
 
 <!--
@@ -969,7 +984,21 @@ Compute `3 * 4`, writing out your reasoning as a chain of equations, using the e
 
 
 ```agda
--- 请将代码写在此处
+threeTimesFour : 3 * 4 ≡ 12
+threeTimesFour =
+  begin
+    3 * 4
+  ≡⟨⟩
+    4 + (2 * 4)
+  ≡⟨⟩
+    4 + (4 + (1 * 4))
+  ≡⟨⟩
+    4 + (4 + (4 + (0 * 4)))
+  ≡⟨⟩
+    4 + (4 + (4 + 0))
+  ≡⟨⟩
+    12
+  ∎
 ```
 
 <!--
@@ -996,7 +1025,12 @@ Check that `3 ^ 4` is `81`.
 
 
 ```agda
--- 请将代码写在此处
+_^_ : ℕ → ℕ → ℕ
+m ^    zero = 1
+m ^ (suc n) = m * (m ^ n)
+
+threeToFour : 3 ^ 4 ≡ 81
+threeToFour = refl
 ```
 
 <!--
@@ -1143,7 +1177,33 @@ Compute `5 ∸ 3` and `3 ∸ 5`, writing out your reasoning as a chain of equati
 
 
 ```agda
--- 请将代码写在此处
+FiveMonusThree : 5 ∸ 3 ≡ 2
+FiveMonusThree = 
+  begin
+    5 ∸ 3
+  ≡⟨⟩
+    4 ∸ 2
+  ≡⟨⟩
+    3 ∸ 1
+  ≡⟨⟩
+    2 ∸ 0
+  ≡⟨⟩
+    2
+  ∎
+
+ThreeMonusFive : 3 ∸ 5 ≡ 0
+ThreeMonusFive = 
+  begin
+    3 ∸ 5
+  ≡⟨⟩
+    2 ∸ 4
+  ≡⟨⟩
+    1 ∸ 3
+  ≡⟨⟩
+    0 ∸ 2
+  ≡⟨⟩
+    0
+  ∎
 ```
 
 <!--
@@ -1854,7 +1914,64 @@ Confirm that these both give the correct answer for zero through four.
 
 
 ```agda
--- 请将代码写在此处
+inc : Bin → Bin
+inc ⟨⟩ = ⟨⟩ I
+inc (p O) = p I
+inc (p I) = (inc p) O
+
+to : ℕ → Bin
+to zero = ⟨⟩ O
+to (suc n) = inc (to n)
+
+from : Bin → ℕ
+from ⟨⟩ = zero
+from (p O) = (from p) * 2
+from (p I) = suc ((from p) * 2)
+
+incZero : inc (⟨⟩ O) ≡ ⟨⟩ I
+incZero = refl
+
+incOne : inc (⟨⟩ I) ≡ ⟨⟩ I O
+incOne = refl
+
+incTwo : inc (⟨⟩ I O) ≡ ⟨⟩ I I
+incTwo = refl
+
+incThree : inc (⟨⟩ I I) ≡ ⟨⟩ I O O
+incThree = refl
+
+incFour : inc (⟨⟩ I O O) ≡ ⟨⟩ I O I
+incFour = refl
+
+toZero : to zero ≡ ⟨⟩ O
+toZero = refl
+
+toOne : to 1 ≡ ⟨⟩ I
+toOne = refl
+
+toTwo : to 2 ≡ ⟨⟩ I O
+toTwo = refl
+
+toThree : to 3 ≡ ⟨⟩ I I
+toThree = refl
+
+toFour : to 4 ≡ ⟨⟩ I O O
+toFour = refl
+
+fromZero : from (⟨⟩ O) ≡ zero
+fromZero = refl
+
+fromOne : from (⟨⟩ I) ≡ 1
+fromOne = refl
+
+fromTwo : from (⟨⟩ I O) ≡ 2
+fromTwo = refl
+
+fromThree : from (⟨⟩ I I) ≡ 3
+fromThree = refl
+
+fromFour : from (⟨⟩ I O O) ≡ 4
+fromFour = refl
 ```
 
 <!--
