@@ -154,7 +154,7 @@ and are associative, commutative, and distribute over one another.
 （你不必证明这些性质）
 
 ```agda
--- 请将代码写在此处
+-- Tropical Semiring
 ```
 
 <!--
@@ -166,7 +166,7 @@ associative but is not commutative.
 （你不必证明这些性质）
 
 ```agda
--- 请将代码写在此处
+-- Matrix Multiplication
 ```
 
 
@@ -1383,7 +1383,59 @@ first four days using a finite story of creation, as
 
 
 ```agda
--- 请将代码写在此处
+0-+-assoc : ∀ (n p : ℕ) → (0 + n) + p ≡ 0 + (n + p)
+0-+-assoc n p = 
+  begin
+    (0 + n) + p
+  ≡⟨⟩
+    n + p
+  ≡⟨⟩
+    0 + (n + p)
+  ∎
+
+1-+-assoc : ∀ (n p : ℕ) → (1 + n) + p ≡ 1 + (n + p)
+1-+-assoc n p =
+  begin
+    (1 + n) + p
+  ≡⟨⟩
+    suc n + p
+  ≡⟨⟩
+    suc ((0 + n) + p)
+  ≡⟨ cong suc (0-+-assoc n p) ⟩
+    suc (0 + (n + p))
+  ≡⟨⟩
+    1 + 0 + (n + p)
+  ≡⟨⟩
+    1 + (n + p)
+  ∎
+
+2-+-assoc : ∀ (n p : ℕ) → (2 + n) + p ≡ 2 + (n + p)
+2-+-assoc n p =
+  begin
+    (2 + n) + p
+  ≡⟨⟩
+    suc ((1 + n) + p)
+  ≡⟨ cong suc (1-+-assoc n p) ⟩
+    suc (1 + (n + p))
+  ≡⟨⟩
+    1 + 1 + (n + p)
+  ≡⟨⟩
+    2 + (n + p)
+  ∎
+
+3-+-assoc : ∀ (n p : ℕ) → (3 + n) + p ≡ 3 + (n + p)
+3-+-assoc n p =
+  begin
+    (3 + n) + p
+  ≡⟨⟩
+    suc ((2 + n) + p)
+  ≡⟨ cong suc (2-+-assoc n p) ⟩
+    suc (2 + (n + p))
+  ≡⟨⟩
+    1 + 2 + (n + p)
+  ≡⟨⟩
+    3 + (n + p)
+  ∎
 ```
 
 <!--
@@ -1681,7 +1733,17 @@ is associative and commutative.
 
 
 ```agda
--- 请将代码写在此处
++-swap : ∀ (m n p : ℕ) → m + (n + p) ≡ n + (m + p)
++-swap m n p =
+  begin
+    m + (n + p)
+  ≡⟨ +-comm m (n + p) ⟩
+    (n + p) + m
+  ≡⟨ +-assoc n p m ⟩
+    n + (p + m)
+  ≡⟨ cong (n +_) (+-comm p m) ⟩
+    n + (m + p)
+  ∎
 ```
 
 <!--
@@ -1707,7 +1769,29 @@ for all naturals `m`, `n`, and `p`.
 
 
 ```agda
--- 请将代码写在此处
+*-distrib-+ : ∀ (m n p : ℕ) → (m + n) * p ≡ m * p + n * p
+*-distrib-+ zero n p =
+  begin
+    (zero + n) * p
+  ≡⟨⟩
+    n * p
+  ≡⟨⟩
+    zero * p + n * p
+  ∎
+*-distrib-+ (suc m) n p =
+  begin
+    (suc m + n) * p
+  ≡⟨⟩
+    (suc (m + n)) * p
+  ≡⟨⟩
+    p + (m + n) * p
+  ≡⟨ cong (p +_) (*-distrib-+ m n p) ⟩ 
+    p + (m * p + n * p)
+  ≡⟨ sym (+-assoc p (m * p) (n * p)) ⟩
+    p + m * p + n * p
+  ≡⟨⟩
+    (suc m) * p + n * p
+  ∎
 ```
 
 <!--
@@ -1733,7 +1817,9 @@ for all naturals `m`, `n`, and `p`.
 
 
 ```agda
--- 请将代码写在此处
+*-assoc : ∀ (m n p : ℕ) → (m * n) * p ≡ m * (n * p)
+*-assoc zero n p = refl
+*-assoc (suc m) n p rewrite *-distrib-+ n (m * n) p | cong ((n * p) +_) (*-assoc m n p) = refl
 ```
 
 <!--
@@ -1760,7 +1846,32 @@ you will need to formulate and prove suitable lemmas.
 
 
 ```agda
--- 请将代码写在此处
+*-zeroʳ : ∀ (n : ℕ) → n * zero ≡ zero
+*-zeroʳ zero = refl
+*-zeroʳ (suc n) rewrite *-distrib-+ 1 n zero | cong (zero +_) (*-zeroʳ n) = refl
+
+*-identityˡ : ∀ (n : ℕ) → 1 * n ≡ n
+*-identityˡ zero = refl
+*-identityˡ (suc n) rewrite *-identityˡ n = refl
+
+*-suc : ∀ (m n : ℕ) → m * suc n ≡ m + m * n
+*-suc zero n = refl
+*-suc (suc m) n rewrite *-suc m n | +-swap n m (m * n) = refl
+
+*-comm : ∀ (m n : ℕ) → m * n ≡ n * m
+*-comm zero n = sym (*-zeroʳ n)
+*-comm (suc m) n =
+  begin
+    (suc m) * n
+  ≡⟨ *-distrib-+ 1 m n ⟩
+    1 * n + m * n
+  ≡⟨ cong (_+ m * n) (*-identityˡ n) ⟩
+    n + m * n
+  ≡⟨ cong (n +_) (*-comm m n) ⟩
+    n + n * m
+  ≡⟨ sym (*-suc n m) ⟩
+    n * (1 + m)
+  ∎
 ```
 
 
@@ -1787,7 +1898,9 @@ for all naturals `n`. Did your proof require induction?
 
 
 ```agda
--- 请将代码写在此处
+0∸n≡0 : ∀ (n : ℕ) → zero ∸ n ≡ zero
+0∸n≡0 zero = refl
+0∸n≡0 (suc n) = refl
 ```
 
 
@@ -1814,7 +1927,10 @@ for all naturals `m`, `n`, and `p`.
 
 
 ```agda
--- 请将代码写在此处
+∸-+-assoc : ∀ (m n p : ℕ) → m ∸ n ∸ p ≡ m ∸ (n + p)
+∸-+-assoc zero n p rewrite 0∸n≡0 (n + p) | 0∸n≡0 n | 0∸n≡0 p = refl
+∸-+-assoc (suc m) zero p = refl
+∸-+-assoc (suc m) (suc n) p rewrite ∸-+-assoc m n p = refl
 ```
 
 
@@ -1841,7 +1957,32 @@ for all `m`, `n`, and `p`.
 对于所有 `m`、`n` 和 `p` 成立。
 
 ```agda
--- 请将代码写在此处
+^-distribˡ-+-* : ∀ (m n p : ℕ) → m ^ (n + p) ≡ (m ^ n) * (m ^ p)
+^-distribˡ-+-* m zero p rewrite +-identityʳ (m ^ p) = refl
+^-distribˡ-+-* m (suc n) p rewrite ^-distribˡ-+-* m n p = sym (*-assoc m (m ^ n) (m ^ p))
+
+^-distribʳ-* : ∀ (m n p : ℕ) → (m * n) ^ p ≡ (m ^ p) * (n ^ p)
+^-distribʳ-* m n zero = refl
+^-distribʳ-* m n (suc p) rewrite ^-distribʳ-* m n p =
+  begin
+    m * n * (m ^ p * n ^ p)
+  ≡⟨ sym (*-assoc (m * n) (m ^ p) (n ^ p)) ⟩
+    m * n * m ^ p * n ^ p
+  ≡⟨ cong (_* n ^ p) (*-assoc m n (m ^ p)) ⟩
+    m * (n * m ^ p) * n ^ p
+  ≡⟨ cong (_* n ^ p) (cong (m *_) (*-comm n (m ^ p))) ⟩
+    m * (m ^ p * n) * n ^ p
+  ≡⟨ sym (cong (_* n ^ p) (*-assoc m (m ^ p) n)) ⟩
+    m * m ^ p * n * n ^ p
+  ≡⟨ *-assoc (m * m ^ p) n (n ^ p) ⟩
+    m * m ^ p * (n * n ^ p)
+  ∎
+
+^-*-assoc : ∀ (m n p : ℕ) → (m ^ n) ^ p ≡ m ^ (n * p)
+^-*-assoc m n zero rewrite *-zeroʳ n = refl
+^-*-assoc m n (suc p) rewrite ^-*-assoc m n p
+  | sym (^-distribˡ-+-* m n (n * p))
+  | sym (*-suc n p) = refl
 ```
 
 <!--
@@ -1885,7 +2026,36 @@ For each law: if it holds, prove; if not, give a counterexample.
 
 
 ```agda
--- 请将代码写在此处
+data Bin : Set where
+  ⟨⟩ : Bin
+  _O : Bin → Bin
+  _I : Bin → Bin
+
+inc : Bin → Bin
+inc ⟨⟩ = ⟨⟩ I
+inc (p O) = p I
+inc (p I) = (inc p) O
+
+to : ℕ → Bin
+to zero = ⟨⟩ O
+to (suc n) = inc (to n)
+
+from : Bin → ℕ
+from ⟨⟩ = zero
+from (p O) = (from p) * 2
+from (p I) = suc ((from p) * 2)
+
+inc-suc-identity : ∀ (b : Bin) → from (inc b) ≡ suc (from b)
+inc-suc-identity ⟨⟩ = refl
+inc-suc-identity (b O) = refl
+inc-suc-identity (b I) rewrite inc-suc-identity b = refl
+
+to-from-identity : to (from ⟨⟩) ≡ ⟨⟩ O
+to-from-identity = refl
+
+from-to-identity : ∀ (n : ℕ) → from (to n) ≡ n
+from-to-identity zero = refl
+from-to-identity (suc n) rewrite inc-suc-identity (to n) | from-to-identity n = refl
 ```
 
 
