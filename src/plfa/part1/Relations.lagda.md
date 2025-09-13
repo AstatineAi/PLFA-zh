@@ -462,7 +462,7 @@ Give an example of a preorder that is not a partial order.
 
 
 ```agda
--- 请将代码写在此处
+-- Divisible
 ```
 
 <!--
@@ -474,7 +474,7 @@ Give an example of a partial order that is not a total order.
 
 
 ```agda
--- 请将代码写在此处
+-- 令 x₁ ≤ x₂ ∧ y₁ ≤ y₂ 时 (x₁, y₁) ≤ (x₂, y₂), 则这是一个 ℝ² 偏序
 ```
 
 
@@ -697,7 +697,7 @@ argument is `s≤s`.  Why is it ok to omit them?
 
 
 ```agda
--- 请将代码写在此处
+-- 不存在这样的情况
 ```
 
 
@@ -1037,7 +1037,25 @@ Show that multiplication is monotonic with regard to inequality.
 
 
 ```agda
--- 请将代码写在此处
+*-monoʳ-≤ : ∀ (n p q : ℕ)
+  → p ≤ q
+    -------------
+  → n * p ≤ n * q
+*-monoʳ-≤ zero p q _ = z≤n
+*-monoʳ-≤ (suc n) p q p≤q = +-mono-≤ p q (n * p) (n * q) p≤q (*-monoʳ-≤ n p q p≤q)
+
+*-monoˡ-≤ : ∀ (m n p : ℕ)
+  → m ≤ n
+    -------------
+  → m * p ≤ n * p
+*-monoˡ-≤ m n p m≤n rewrite *-comm m p | *-comm n p = *-monoʳ-≤ p m n m≤n
+
+*-mono-≤ : ∀ (m n p q : ℕ)
+  → m ≤ n
+  → p ≤ q
+    -------------
+  → m * p ≤ n * q
+*-mono-≤ m n p q m≤n p≤q = ≤-trans (*-monoˡ-≤ m n p m≤n) (*-monoʳ-≤ n p q p≤q)
 ```
 
 
@@ -1127,7 +1145,13 @@ exercise exploits the relation between < and ≤.)
 
 
 ```agda
--- 请将代码写在此处
+<-trans : ∀ {m n p : ℕ}
+  → m < n
+  → n < p
+    -----
+  → m < p
+<-trans z<s (s<s n<p) = z<s
+<-trans (s<s m<n) (s<s n<p) = s<s (<-trans m<n n<p)
 ```
 
 <!--
@@ -1164,7 +1188,31 @@ similar to that used for totality.
 
 
 ```agda
--- 请将代码写在此处
+data TrichotomyNoNeg (m n : ℕ) : Set where
+
+  less-than : 
+      m < n
+      -------------------
+    → TrichotomyNoNeg m n
+
+  equal :
+      m ≡ n
+      -------------------
+    → TrichotomyNoNeg m n
+  
+  more-than :
+      n < m
+      -------------------
+    → TrichotomyNoNeg m n
+
+<-trichotomy-no-neg : ∀ (m n : ℕ) → TrichotomyNoNeg m n
+<-trichotomy-no-neg zero zero = equal refl
+<-trichotomy-no-neg zero (suc n) = less-than z<s
+<-trichotomy-no-neg (suc m) zero = more-than z<s
+<-trichotomy-no-neg (suc m) (suc n) with <-trichotomy-no-neg m n
+...                                    | less-than m<n = less-than (s<s m<n)
+...                                    | equal m≡n = equal (cong suc m≡n)
+...                                    | more-than n<m = more-than (s<s n<m)
 ```
 
 <!--
@@ -1183,7 +1231,25 @@ As with inequality, some additional definitions may be required.
 
 
 ```agda
--- 请将代码写在此处
++-monoʳ-< : ∀ (n p q : ℕ)
+  → p < q
+    -------------
+  → n + p < n + q
++-monoʳ-< zero p q p<q = p<q
++-monoʳ-< (suc n) p q p<q = s<s (+-monoʳ-< n p q p<q)
+
++-monoˡ-< : ∀ (m n p : ℕ)
+  → m < n
+    -------------
+  → m + p < n + p
++-monoˡ-< m n p m<n rewrite +-comm m p | +-comm n p = +-monoʳ-< p m n m<n
+
++-mono-< : ∀ (m n p q : ℕ)
+  → m < n
+  → p < q
+    -------------
+  → m + p < n + q
++-mono-< m n p q m<n p<q = <-trans (+-monoˡ-< m n p m<n) (+-monoʳ-< n p q p<q)
 ```
 
 <!--
@@ -1201,7 +1267,25 @@ Show that `suc m ≤ n` implies `m < n`, and conversely.
 
 
 ```agda
--- 请将代码写在此处
+≤-iff-< : ∀ (m n : ℕ)
+  → suc m ≤ n
+    ---------
+  → m < n
+≤-iff-< zero (suc n) _ = z<s
+≤-iff-< (suc m) (suc n) sucm≤n = s<s (≤-iff-< m n (inv-s≤s sucm≤n))
+
+inv-s<s : ∀ {m n : ℕ}
+  → suc m < suc n
+    -------------
+  → m < n
+inv-s<s (s<s m<n) = m<n
+
+<-iff-≤ : ∀ (m n : ℕ)
+  → m < n
+    ---------
+  → suc m ≤ n
+<-iff-≤ zero (suc n) m<n = s≤s z≤n
+<-iff-≤ (suc m) (suc n) m<n = s≤s (<-iff-≤ m n (inv-s<s m<n))
 ```
 
 <!--
@@ -1222,7 +1306,19 @@ the fact that inequality is transitive.
 
 
 ```agda
--- 请将代码写在此处
+<-trans-revisited : ∀ (m n p : ℕ)
+  → m < n
+  → n < p
+    -----
+  → m < p
+<-trans-revisited m n p m<n n<p = helper m p (≤-iff-< (suc m) p (≤-trans (s≤s (<-iff-≤ m n m<n)) (<-iff-≤ n p n<p)))
+  where
+  helper : ∀ (m n : ℕ)
+    → suc m < n
+      ----------------
+    → m < n
+  helper zero (suc n) sucm<n = z<s
+  helper (suc m) (suc n) sucm<n = s<s (helper m n (inv-s<s sucm<n))
 ```
 
 
@@ -1400,7 +1496,12 @@ Show that the sum of two odd numbers is even.
 
 
 ```agda
--- 请将代码写在此处
+o+o≡e : ∀ {m n : ℕ}
+  → odd m
+  → odd n
+   -------------
+  → even (m + n)
+o+o≡e {suc m} {suc  n} (suc om) (suc on) rewrite +-comm m (suc n) = suc (suc (e+e≡e on om))
 ```
 
 
@@ -1501,7 +1602,114 @@ properties of `One`. It may also help to prove the following:
     to (2 * n) ≡ (to n) O
 
 ```agda
--- 请将代码写在此处
+data Bin : Set where
+  ⟨⟩ : Bin
+  _O : Bin → Bin
+  _I : Bin → Bin
+
+inc : Bin → Bin
+inc ⟨⟩ = ⟨⟩ I
+inc (p O) = p I
+inc (p I) = (inc p) O
+
+to : ℕ → Bin
+to zero = ⟨⟩ O
+to (suc n) = inc (to n)
+
+from : Bin → ℕ
+from ⟨⟩ = zero
+from (p O) = (from p) * 2
+from (p I) = suc ((from p) * 2)
+
+data One : Bin → Set where
+
+  one-base :
+    ----------
+    One (⟨⟩ I)
+
+  one-O : ∀ {p : Bin} → One p
+      ---------
+    → One (p O)
+
+  one-I : ∀ {p : Bin} → One p
+      ---------
+    → One (p I)
+
+data Can : Bin → Set where
+  zero :
+    ----------
+    Can (⟨⟩ O)
+
+  one : ∀ {b : Bin}
+    → One b
+      -----
+    → Can b
+
+one-inc : ∀ {b : Bin}
+  → One b
+    -----------
+  → One (inc b)
+one-inc one-base = one-O one-base
+one-inc (one-O o) = one-I o
+one-inc (one-I o) = one-O (one-inc o)
+
+can-inc : ∀ {b : Bin}
+  → Can b
+    -----------
+  → Can (inc b)
+can-inc zero = one one-base
+can-inc (one b) = one (one-inc b)
+
+can-to : ∀ {n : ℕ}
+  →
+   ----------
+   Can (to n)
+can-to {zero} = zero
+can-to {suc n} = can-inc (can-to {n})
+
+n≤n*2 : ∀ (n : ℕ)
+  →
+   ---------
+   n ≤ n * 2
+n≤n*2 zero = z≤n
+n≤n*2 (suc n) = s≤s (helper n (n * 2) (n≤n*2 n))
+  where
+  helper : ∀ (m n : ℕ)
+    → m ≤ n
+      ---------
+    → m ≤ suc n
+  helper zero n m≤n = z≤n
+  helper (suc m) (suc n) (s≤s m≤n) = s≤s (helper m n m≤n)
+
+≤-one : ∀ {b : Bin}
+  → One b
+    ----------
+  → 1 ≤ from b
+≤-one one-base = ≤-refl
+≤-one {b O} (one-O o) = ≤-trans (≤-one o) (n≤n*2 (from b))
+≤-one (one-I o) = s≤s z≤n
+
+n*2≡app-O : ∀ (n : ℕ)
+  → 1 ≤ n
+    ---------------------
+  → to (n * 2) ≡ (to n) O
+n*2≡app-O (suc zero) 1≤n = refl
+n*2≡app-O (suc (suc n)) 1≤n rewrite n*2≡app-O (suc n) (s≤s z≤n) = refl
+
+one-from-to : ∀ {b : Bin}
+  → One b
+    ---------------
+  → to (from b) ≡ b
+one-from-to one-base = refl
+one-from-to {p O} (one-O b) rewrite n*2≡app-O (from p) (≤-one b) | one-from-to b = refl
+one-from-to {p I} (one-I b) rewrite n*2≡app-O (from p) (≤-one b) | one-from-to b = refl
+
+can-from-to : ∀ {b : Bin}
+  → Can b
+    ---------------
+  → to (from b) ≡ b
+can-from-to zero = refl
+can-from-to (one o) = one-from-to o
 ```
 
 
