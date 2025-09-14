@@ -504,7 +504,7 @@ of `_≡⟨_⟩_`)
 （提示：关注 `_≡⟨_⟩_` 的定义）
 
 ```agda
--- 请将代码写在此处
+-- Non terminate
 ```
 
 <!--
@@ -648,7 +648,102 @@ regard to inequality.  Rewrite all of `+-monoˡ-≤`, `+-monoʳ-≤`, and `+-mon
 和 `+-mono-≤` 的定义。
 
 ```agda
--- 请将代码写在此处
+data _≤_ : ℕ → ℕ → Set where
+
+  z≤n : ∀ {n : ℕ}
+      --------
+    → zero ≤ n
+
+  s≤s : ∀ {m n : ℕ}
+    → m ≤ n
+      -------------
+    → suc m ≤ suc n
+
+infix  4 _≤_
+
+≤-refl : ∀ {n : ℕ}
+    -----
+  → n ≤ n
+≤-refl {zero} = z≤n
+≤-refl {suc n} = s≤s ≤-refl
+
+≤-≡-refl : ∀ {m n : ℕ}
+  → m ≡ n
+    -----
+  → m ≤ n
+≤-≡-refl refl = ≤-refl
+
+≤-trans : ∀ {m n p : ℕ}
+  → m ≤ n
+  → n ≤ p
+    -----
+  → m ≤ p
+≤-trans z≤n       _          =  z≤n
+≤-trans (s≤s m≤n) (s≤s n≤p)  =  s≤s (≤-trans m≤n n≤p)
+
+module ≤-Reasoning where
+
+  infix  1 beginle_
+  infixr 2 step-≤-| step-≤-⟩
+  infix  3 _∎le
+  
+  beginle_ : ∀ {x y : ℕ} → x ≤ y → x ≤ y
+  beginle x≤y = x≤y
+
+  step-≤-| : ∀ (x : ℕ) {y : ℕ} → x ≤ y → x ≤ y
+  step-≤-| x x≤y = x≤y
+
+  step-≤-⟩ : ∀ (x : ℕ) {y z : ℕ} → y ≤ z → x ≤ y → x ≤ z
+  step-≤-⟩ _ y≤z x≤y = ≤-trans x≤y y≤z
+
+  syntax step-≤-| x x≤y = x ≤⟨⟩ x≤y
+  syntax step-≤-⟩ x y≤z x≤y = x ≤⟨ x≤y ⟩ y≤z
+
+  _∎le : ∀ (x : ℕ) → x ≤ x
+  x ∎le = ≤-refl
+
+open ≤-Reasoning
+
++-monoʳ-≤ : ∀ (n p q : ℕ)
+  → p ≤ q
+    -------------
+  → n + p ≤ n + q
++-monoʳ-≤ zero p q p≤q = p≤q
++-monoʳ-≤ (suc n) p q p≤q =
+  beginle
+    suc (n + p)
+  ≤⟨ s≤s (+-monoʳ-≤ n p q p≤q) ⟩
+    suc (n + q)
+  ∎le
+
++-monoˡ-≤ : ∀ (m n p : ℕ)
+  → m ≤ n
+    -------------
+  → m + p ≤ n + p
++-monoˡ-≤ m n p m≤n =
+  beginle
+    m + p
+  ≤⟨ ≤-≡-refl (+-comm m p) ⟩
+    p + m
+  ≤⟨ +-monoʳ-≤ p m n m≤n ⟩
+    p + n
+  ≤⟨ ≤-≡-refl (+-comm p n) ⟩
+    n + p
+  ∎le
+
++-mono-≤ : ∀ (m n p q : ℕ)
+  → m ≤ n
+  → p ≤ q
+    -------------
+  → m + p ≤ n + q
++-mono-≤ m n p q m≤n p≤q = 
+  beginle
+    m + p
+  ≤⟨ +-monoˡ-≤ m n p m≤n ⟩
+    n + p
+  ≤⟨ +-monoʳ-≤ n p q p≤q ⟩
+    n + q
+  ∎le
 ```
 
 
