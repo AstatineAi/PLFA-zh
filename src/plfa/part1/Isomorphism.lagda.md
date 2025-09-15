@@ -679,15 +679,16 @@ Show that every isomorphism implies an embedding.
 证明每个同构蕴涵了一个嵌入。
 
 ```agda
-postulate
-  ≃-implies-≲ : ∀ {A B : Set}
+≃-implies-≲ : ∀ {A B : Set}
     → A ≃ B
       -----
     → A ≲ B
-```
-
-```agda
--- 请将代码写在此处
+≃-implies-≲ A≃B =
+  record
+    { to      = to A≃B
+    ; from    = from A≃B
+    ; from∘to = from∘to A≃B
+    }
 ```
 
 <!--
@@ -716,7 +717,37 @@ Show that equivalence is reflexive, symmetric, and transitive.
 证明等价性是自反、对称和传递的。
 
 ```agda
--- 请将代码写在此处
+open _⇔_
+
+⇔-refl : ∀ {A : Set}
+    ------
+  → A ⇔ A
+⇔-refl =
+  record
+    { to   = λ {x → x}
+    ; from = λ {x → x}
+    }
+
+⇔-sym : ∀ {A B : Set}
+  → A ⇔ B
+    ------
+  → B ⇔ A
+⇔-sym A⇔B =
+  record
+    { to   = from A⇔B
+    ; from = to A⇔B
+    }
+
+⇔-trans : ∀ {A B C : Set}
+  → A ⇔ B
+  → B ⇔ C
+    ------
+  → A ⇔ C
+⇔-trans A⇔B B⇔C =
+  record
+    { to   = (to B⇔C) ∘ (to A⇔B)
+    ; from = (from A⇔B) ∘ (from B⇔C)
+    }
 ```
 
 <!--
@@ -756,7 +787,43 @@ Using the above, establish that there is an embedding of `ℕ` into `Bin`.
 使用上述条件，证明存在一个从 `ℕ` 到 `Bin` 的嵌入。
 
 ```agda
--- 请将代码写在此处
+open import Data.Nat using (ℕ; _*_)
+
+data Bin : Set where
+  ⟨⟩ : Bin
+  _O : Bin → Bin
+  _I : Bin → Bin
+
+inc : Bin → Bin
+inc ⟨⟩ = ⟨⟩ I
+inc (p O) = p I
+inc (p I) = (inc p) O
+
+to-bin : ℕ → Bin
+to-bin zero = ⟨⟩ O
+to-bin (suc n) = inc (to-bin n)
+
+from-bin : Bin → ℕ
+from-bin ⟨⟩ = zero
+from-bin (p O) = (from-bin p) * 2
+from-bin (p I) = suc ((from-bin p) * 2)
+
+inc-suc-identity : ∀ (b : Bin) → from-bin (inc b) ≡ suc (from-bin b)
+inc-suc-identity ⟨⟩ = refl
+inc-suc-identity (b O) = refl
+inc-suc-identity (b I) rewrite inc-suc-identity b = refl
+
+from-to-identity : ∀ (n : ℕ) → from-bin (to-bin n) ≡ n
+from-to-identity zero = refl
+from-to-identity (suc n) rewrite inc-suc-identity (to-bin n) | from-to-identity n = refl
+
+ℕ≲Bin : ℕ ≲ Bin
+ℕ≲Bin =
+  record
+    { to = to-bin
+    ; from = from-bin
+    ; from∘to = from-to-identity
+    }
 ```
 
 <!--
