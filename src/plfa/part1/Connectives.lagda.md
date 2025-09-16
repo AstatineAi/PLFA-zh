@@ -408,7 +408,16 @@ is isomorphic to `(A → B) × (B → A)`.
 证明[之前](/Isomorphism/#iff)定义的 `A ⇔ B` 与 `(A → B) × (B → A)` 同构。
 
 ```agda
--- 请将代码写在此处
+open _⇔_
+
+⇔≃× : ∀ {A B : Set} → A ⇔ B ≃ ((A → B) × (B → A))
+⇔≃× =
+  record
+    { to = λ { A⇔B → ⟨ to A⇔B , from A⇔B ⟩ }
+    ; from = λ { ⟨ A→B , B→A ⟩ → record {from = B→A; to = A→B} }
+    ; from∘to = λ {w → refl}
+    ; to∘from = λ {w → refl}
+    }
 ```
 
 <!--
@@ -798,7 +807,14 @@ Show sum is commutative up to isomorphism.
 
 
 ```agda
--- 请将代码写在此处
+⊎-comm : ∀ {A B : Set} → A ⊎ B ≃ B ⊎ A
+⊎-comm =
+  record
+    { to      = λ {A⊎B → case-⊎ inj₂ inj₁ A⊎B}
+    ; from    = λ {B⊎A → case-⊎ inj₂ inj₁ B⊎A}
+    ; from∘to = λ {(inj₁ _) → refl; (inj₂ _) → refl}
+    ; to∘from = λ {(inj₁ _) → refl; (inj₂ _) → refl}
+    }
 ```
 
 <!--
@@ -815,7 +831,14 @@ Show sum is associative up to isomorphism.
 
 
 ```agda
--- 请将代码写在此处
+⊎-assoc : ∀ {A B C : Set} → (A ⊎ B) ⊎ C ≃ A ⊎ (B ⊎ C)
+⊎-assoc =
+  record
+    { to      = λ {(inj₁ (inj₁ A)) → inj₁ A; (inj₁ (inj₂ B)) → inj₂ (inj₁ B); (inj₂ C) → inj₂ (inj₂ C)}
+    ; from    = λ {(inj₁ A) → inj₁ (inj₁ A); (inj₂ (inj₁ B)) → inj₁ (inj₂ B); (inj₂ (inj₂ C)) → inj₂ C}
+    ; from∘to = λ {(inj₁ (inj₁ A)) → refl; (inj₁ (inj₂ B)) → refl; (inj₂ C) → refl}
+    ; to∘from = λ {(inj₁ A) → refl; (inj₂ (inj₁ B)) → refl; (inj₂ (inj₂ C)) → refl}
+    }
 ```
 
 <!--
@@ -960,7 +983,14 @@ Show empty is the left identity of sums up to isomorphism.
 
 
 ```agda
--- 请将代码写在此处
+⊥-identityˡ : ∀ {A : Set} → ⊥ ⊎ A ≃ A
+⊥-identityˡ =
+  record
+    { to = λ {(inj₂ A) → A}
+    ; from = λ {A → inj₂ A}
+    ; from∘to = λ {(inj₂ A) → refl}
+    ; to∘from = λ {_ → refl}
+    }
 ```
 
 <!--
@@ -978,7 +1008,15 @@ Show empty is the right identity of sums up to isomorphism.
 
 
 ```agda
--- 请将代码写在此处
+⊥-identityʳ : ∀ {A : Set} → A ⊎ ⊥ ≃ A
+⊥-identityʳ {A} =
+  ≃-begin
+    (A ⊎ ⊥)
+  ≃⟨ ⊎-comm ⟩
+    (⊥ ⊎ A)
+  ≃⟨ ⊥-identityˡ ⟩
+    A
+  ≃-∎
 ```
 
 <!--
@@ -1357,8 +1395,7 @@ Show that the following property holds:
 证明如下性质成立：
 
 ```agda
-postulate
-  ⊎-weak-× : ∀ {A B C : Set} → (A ⊎ B) × C → A ⊎ (B × C)
+⊎-weak-× : ∀ {A B C : Set} → (A ⊎ B) × C → A ⊎ (B × C)
 ```
 
 <!--
@@ -1371,7 +1408,9 @@ distributive law, and explain how it relates to the weak version.
 
 
 ```agda
--- 请将代码写在此处
+⊎-weak-× ⟨ inj₁ A , C ⟩ = inj₁ A
+⊎-weak-× ⟨ inj₂ B , C ⟩ = inj₂ ⟨ B , C ⟩
+-- 弱分配率是对分配率的 (A × C) ⊎ (B × C) 的 inj₁ 取出第一项的特例？
 ```
 
 
@@ -1388,8 +1427,7 @@ Show that a disjunct of conjuncts implies a conjunct of disjuncts:
 证明合取的析取蕴涵了析取的合取：
 
 ```agda
-postulate
-  ⊎×-implies-×⊎ : ∀ {A B C D : Set} → (A × B) ⊎ (C × D) → (A ⊎ C) × (B ⊎ D)
+⊎×-implies-×⊎ : ∀ {A B C D : Set} → (A × B) ⊎ (C × D) → (A ⊎ C) × (B ⊎ D)
 ```
 
 <!--
@@ -1401,7 +1439,10 @@ Does the converse hold? If so, prove; if not, give a counterexample.
 
 
 ```agda
--- 请将代码写在此处
+⊎×-implies-×⊎ (inj₁ ⟨ A , B ⟩) = ⟨ inj₁ A , inj₁ B ⟩
+⊎×-implies-×⊎ (inj₂ ⟨ C , D ⟩) = ⟨ inj₂ C , inj₂ D ⟩
+
+-- Counterexample: ⟨ inj₁ A , inj₂ D ⟩ ­does not imply (A × B) ⊎ (C × D)
 ```
 
 <!--
