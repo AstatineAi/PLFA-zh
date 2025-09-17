@@ -18,13 +18,13 @@ and classical logic.
 ## Imports
 
 ```agda
-open import Relation.Binary.PropositionalEquality using (_≡_; refl)
+open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong)
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Data.Product using (_×_; proj₁; proj₂) renaming (_,_ to ⟨_,_⟩)
 open import Relation.Nullary.Negation using (contradiction)
-open import plfa.part1.Isomorphism using (_≃_; extensionality)
+open import plfa.part1.Isomorphism using (_≃_; _≲_; extensionality)
 ```
 
 
@@ -364,7 +364,11 @@ is irreflexive, that is, `n < n` holds for no `n`.
 
 
 ```agda
--- 请将代码写在此处
+open import Data.Nat using (_<_; s<s; z<s)
+
+<-irreflexive : ∀ {n : ℕ} → ¬ n < n
+<-irreflexive {zero} = λ()
+<-irreflexive {suc n} (s<s n<n) = <-irreflexive n<n
 ```
 
 <!--
@@ -397,7 +401,55 @@ but that when one holds the negation of the other two must also hold.
 
 
 ```agda
--- 请将代码写在此处
+cong-suc : ∀ {m n : ℕ} → suc m ≡ suc n → m ≡ n
+cong-suc refl = refl
+
+inv-s<s : ∀ {m n : ℕ}
+  → suc m < suc n
+    -------------
+  → m < n
+inv-s<s (s<s m<n) = m<n
+
+data Trichotomy (m n : ℕ) : Set where
+
+  less-than : 
+      m < n
+    → m ≢ n
+    → ¬ n < m
+      --------------
+    → Trichotomy m n
+
+  equal :
+      m ≡ n
+    → ¬ m < n
+    → ¬ n < m
+      --------------
+    → Trichotomy m n
+  
+  more-than :
+      n < m
+    → m ≢ n
+    → ¬ m < n
+      --------------
+    → Trichotomy m n
+
+<-trichotomy : ∀ (m n : ℕ) → Trichotomy m n
+<-trichotomy zero zero = equal refl <-irreflexive <-irreflexive
+<-trichotomy zero (suc n) = less-than z<s (λ()) λ()
+<-trichotomy (suc m) zero = more-than z<s (λ()) λ()
+<-trichotomy (suc m) (suc n) with <-trichotomy m n
+...                             | less-than m<n m≢n ¬n<m =
+                                  less-than (s<s m<n)
+                                            (contraposition cong-suc m≢n)
+                                            (contraposition inv-s<s ¬n<m)
+...                             | equal m≡n ¬m<n ¬n<m =
+                                  equal (cong suc m≡n)
+                                        (contraposition inv-s<s ¬m<n)
+                                        (contraposition inv-s<s ¬n<m)
+...                             | more-than n<m m≢n ¬m<n =
+                                  more-than (s<s n<m)
+                                            (contraposition cong-suc m≢n)
+                                            (contraposition inv-s<s ¬m<n)
 ```
 
 <!--
@@ -424,7 +476,14 @@ This result is an easy consequence of something we've proved previously.
 
 
 ```agda
--- 请将代码写在此处
+⊎-dual-× : ∀ {A B : Set} → ¬ (A ⊎ B) ≃ (¬ A) × (¬ B)
+⊎-dual-× =
+  record
+    { to      = λ{¬A⊎B → ⟨ contraposition inj₁ ¬A⊎B , contraposition inj₂ ¬A⊎B ⟩}
+    ; from    = λ{¬A×B → λ{ (inj₁ A') → proj₁ ¬A×B A' ; (inj₂ B') → proj₂ ¬A×B B' }}
+    ; from∘to = λ{_ → refl}
+    ; to∘from = λ{_ → refl}
+    }
 ```
 
 <!--
@@ -441,6 +500,13 @@ isomorphism that relates the two sides?
 -->
 
 若成立，请证明；若不成立，你能给出一个比同构更弱的关系将两边关联起来吗？
+
+```agda
+-- We can give a proof to ¬ (A ⊎ B) ≃ (¬ A) × (¬ B) if we have law of excluded middle
+⊎-weaker-× : ∀ {A B : Set} → (¬ A ⊎ ¬ B) → ¬ (A × B)
+⊎-weaker-× (inj₁ ¬A) = contraposition proj₁ ¬A
+⊎-weaker-× (inj₂ ¬B) = contraposition proj₂ ¬B
+```
 
 
 <!--
@@ -747,7 +813,41 @@ Show that each of these implies all the others.
 
 
 ```agda
--- 请将代码写在此处
+em-to-dne : ∀ {A : Set} → (A ⊎ ¬ A) → (¬ ¬ A → A)
+em-to-dne (inj₁ A) _ = A
+em-to-dne (inj₂ ¬A) ¬¬A = ⊥-elim (¬¬A ¬A)
+
+dne-to-em : ∀ {A : Set} → (∀ {B : Set} → ¬ ¬ B → B) → A ⊎ ¬ A
+dne-to-em dne = dne em-irrefutable
+
+em-to-peirce : ∀ {A : Set} → (A ⊎ ¬ A) → (∀ {B : Set} → ((A → B) → A) → A)
+em-to-peirce (inj₁ A') = λ{_ → A'}
+em-to-peirce (inj₂ ¬A') = λ f → f λ A' → ⊥-elim (¬-elim ¬A' A')
+
+peirce-to-em : ∀ {A B : Set} → ((A → B) → A) → A → (A ⊎ ¬ A)
+peirce-to-em f A' = inj₁ A'
+
+em-to-→⊎ : ∀ {A B : Set} → (A ⊎ ¬ A) → (A → B) → (¬ A ⊎ B)
+em-to-→⊎ (inj₁ A') f = inj₂ (f A')
+em-to-→⊎ (inj₂ ¬A') f = inj₁ ¬A'
+
+open import Data.Sum renaming ([_,_] to case-⊎)
+
+-- Higher ranked types are so cool
+→⊎-to-em : (∀ {A B : Set} → ((A → B) → (¬ A ⊎ B))) → (∀ {A : Set} → (A ⊎ ¬ A))
+→⊎-to-em f {A} = case-⊎ inj₂ inj₁ (f {A} {A} λ a → a)
+
+em-to-demorgan : (∀ {A : Set} → (A ⊎ ¬ A)) → (∀ {A B : Set} → ¬ (¬ A × ¬ B) → A ⊎ B)
+em-to-demorgan em = demorgan
+  where
+     demorgan : ∀ {A B : Set} → ¬ (¬ A × ¬ B) → A ⊎ B
+     demorgan {A} {B} neg-conj with em {A} | em {B}
+     ...                          | inj₁ A'  | _ = inj₁ A'
+     ...                          | inj₂ ¬A' | inj₁ B' = inj₂ B'
+     ...                          | inj₂ ¬A' | inj₂ ¬B' = ⊥-elim (¬-elim neg-conj ⟨ ¬A' , ¬B' ⟩)
+
+demorgan-to-em : (∀ {A B : Set} → ¬ (¬ A × ¬ B) → A ⊎ B) → (∀ {A : Set} → (A ⊎ ¬ A))
+demorgan-to-em demorgan {A} = demorgan {A} {¬ A} λ{⟨ ¬A' , ¬¬A' ⟩ → ¬-elim ¬¬A' ¬A'}
 ```
 
 
@@ -778,7 +878,11 @@ of two stable formulas is stable.
 
 
 ```agda
--- 请将代码写在此处
+neg-stable : ∀ {A : Set} → Stable (¬ A)
+neg-stable ¬¬¬A' = λ{A' → ¬-elim ¬¬¬A' (¬¬-intro A')}
+
+con-stable : ∀ {A B : Set} → Stable A → Stable B → Stable (A × B)
+con-stable {A} {B} sA sB = λ{¬¬A×B → ⟨ sA (contraposition (contraposition proj₁) ¬¬A×B) , sB (contraposition (contraposition proj₂) ¬¬A×B) ⟩}
 ```
 
 <!--
