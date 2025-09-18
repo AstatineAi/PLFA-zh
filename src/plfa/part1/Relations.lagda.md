@@ -1602,24 +1602,8 @@ properties of `One`. It may also help to prove the following:
     to (2 * n) ≡ (to n) O
 
 ```agda
-data Bin : Set where
-  ⟨⟩ : Bin
-  _O : Bin → Bin
-  _I : Bin → Bin
-
-inc : Bin → Bin
-inc ⟨⟩ = ⟨⟩ I
-inc (p O) = p I
-inc (p I) = (inc p) O
-
-to : ℕ → Bin
-to zero = ⟨⟩ O
-to (suc n) = inc (to n)
-
-from : Bin → ℕ
-from ⟨⟩ = zero
-from (p O) = (from p) * 2
-from (p I) = suc ((from p) * 2)
+open import plfa.part1.Induction using (Bin; inc; to; from)
+open Bin
 
 data One : Bin → Set where
 

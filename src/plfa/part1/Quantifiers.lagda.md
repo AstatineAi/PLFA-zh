@@ -166,9 +166,15 @@ Show that universals distribute over conjunction:
 证明全称量词对于合取满足分配律：
 
 ```agda
-postulate
-  ∀-distrib-× : ∀ {A : Set} {B C : A → Set} →
-    (∀ (x : A) → B x × C x) ≃ (∀ (x : A) → B x) × (∀ (x : A) → C x)
+∀-distrib-× : ∀ {A : Set} {B C : A → Set} →
+  (∀ (x : A) → B x × C x) ≃ (∀ (x : A) → B x) × (∀ (x : A) → C x)
+∀-distrib-× =
+  record
+    { to      = λ f → ⟨ proj₁ ∘ f , proj₂ ∘ f ⟩
+    ; from    = λ (⟨ f , g ⟩)  → λ x → ⟨ f x , g x ⟩
+    ; from∘to = λ _ → refl
+    ; to∘from = λ _ → refl
+    }
 ```
 
 <!--
@@ -192,9 +198,10 @@ Show that a disjunction of universals implies a universal of disjunctions:
 证明全称命题的析取蕴涵了析取的全称命题：
 
 ```agda
-postulate
-  ⊎∀-implies-∀⊎ : ∀ {A : Set} {B C : A → Set} →
-    (∀ (x : A) → B x) ⊎ (∀ (x : A) → C x) → ∀ (x : A) → B x ⊎ C x
+⊎∀-implies-∀⊎ : ∀ {A : Set} {B C : A → Set} →
+  (∀ (x : A) → B x) ⊎ (∀ (x : A) → C x) → ∀ (x : A) → B x ⊎ C x
+⊎∀-implies-∀⊎ (inj₁ A→B) = inj₁ ∘ A→B
+⊎∀-implies-∀⊎ (inj₂ A→C) = inj₂ ∘ A→C
 ```
 
 <!--
@@ -202,6 +209,10 @@ Does the converse hold? If so, prove; if not, explain why.
 -->
 
 逆命题成立么？如果成立，给出证明。如果不成立，解释为什么。
+
+不成立，为了得到 `(∀ (x : A) → B x) ⊎ (∀ (x : A) → C x)`，要么总是能构造前者，要么总是
+能构造后者，但是对 `∀ (x : A) → B x ⊎ C x` 应用一个 `x : A` 的结果可能是 `B x` 也
+可能是 `C x`。
 
 <!--
 #### Exercise `∀-×` (practice)
@@ -235,6 +246,17 @@ Hint: you will need to use [`∀-extensionality`](/Isomorphism/#extensionality).
 -->
 
 提示：你需要 [`∀-extensionality`](/Isomorphism/#extensionality)。
+
+```agda
+tri-prod : ∀ {B : Tri → Set} → (∀ (x : Tri) → B x) ≃ (B aa × B bb × B cc)
+tri-prod =
+  record
+    { to      = λ{f → ⟨ f aa , ⟨ f bb , f cc ⟩ ⟩}
+    ; from    = λ (⟨ Baa , ⟨ Bbb , Bcc ⟩ ⟩) → λ{aa → Baa; bb → Bbb; cc → Bcc}
+    ; from∘to = λ{_ → (∀-extensionality λ{aa → refl; bb → refl; cc → refl})}
+    ; to∘from = λ{_ → refl}
+    }
+```
 
 <!--
 ## Existentials
@@ -510,9 +532,15 @@ Show that existentials distribute over disjunction:
 证明存在量词对于析取满足分配律：
 
 ```agda
-postulate
-  ∃-distrib-⊎ : ∀ {A : Set} {B C : A → Set} →
-    ∃[ x ] (B x ⊎ C x) ≃ (∃[ x ] B x) ⊎ (∃[ x ] C x)
+∃-distrib-⊎ : ∀ {A : Set} {B C : A → Set} →
+  ∃[ x ] (B x ⊎ C x) ≃ (∃[ x ] B x) ⊎ (∃[ x ] C x)
+∃-distrib-⊎ =
+  record
+    { to      = λ{(⟨ x , inj₁ Bx ⟩) → inj₁ ⟨ x , Bx ⟩; (⟨ x , inj₂ Cx ⟩) → inj₂ ⟨ x , Cx ⟩}
+    ; from    = λ{(inj₁ ⟨ x , Bx ⟩) → ⟨ x , inj₁ Bx ⟩; (inj₂ ⟨ x , Cx ⟩) → ⟨ x , inj₂ Cx ⟩}
+    ; from∘to = λ{(⟨ x , inj₁ Bx ⟩) → refl; (⟨ x , inj₂ Cx ⟩) → refl}
+    ; to∘from = λ{(inj₁ ⟨ x , Bx ⟩) → refl; (inj₂ ⟨ x , Cx ⟩) → refl}
+    }
 ```
 
 <!--
@@ -528,9 +556,9 @@ Show that an existential of conjunctions implies a conjunction of existentials:
 证明合取的存在命题蕴涵了存在命题的合取：
 
 ```agda
-postulate
-  ∃×-implies-×∃ : ∀ {A : Set} {B C : A → Set} →
-    ∃[ x ] (B x × C x) → (∃[ x ] B x) × (∃[ x ] C x)
+∃×-implies-×∃ : ∀ {A : Set} {B C : A → Set} →
+  ∃[ x ] (B x × C x) → (∃[ x ] B x) × (∃[ x ] C x)
+∃×-implies-×∃ ⟨ x , ⟨ Bx , Cx ⟩ ⟩ = ⟨ ⟨ x , Bx ⟩ , ⟨ x , Cx ⟩ ⟩
 ```
 
 <!--
@@ -538,6 +566,8 @@ Does the converse hold? If so, prove; if not, explain why.
 -->
 
 逆命题成立么？如果成立，给出证明。如果不成立，解释为什么。
+
+不成立，存在的合取中的两个 `x` 不一定相同。
 
 <!--
 #### Exercise `∃-⊎` (practice)
@@ -552,6 +582,17 @@ Show that `∃[ x ] B x` is isomorphic to `B aa ⊎ B bb ⊎ B cc`.
 
 沿用练习 `∀-×` 中的 `Tri` 和 `B` 。
 证明 `∃[ x ] B x` 与 `B aa ⊎ B bb ⊎ B cc` 是同构的。
+
+```agda
+tri-sum : ∀ {B : Tri → Set} → ∃[ x ] B x ≃ B aa ⊎ B bb ⊎ B cc
+tri-sum =
+  record
+    { to      = λ{(⟨ aa , Baa ⟩) → inj₁ Baa;(⟨ bb , Bbb ⟩) → inj₂ (inj₁ Bbb);(⟨ cc , Bcc ⟩) → inj₂ (inj₂ Bcc)}
+    ; from    = λ{(inj₁ Baa) → ⟨ aa , Baa ⟩; (inj₂ (inj₁ Bbb)) → ⟨ bb , Bbb ⟩; (inj₂ (inj₂ Bcc)) → ⟨ cc , Bcc ⟩}
+    ; from∘to = λ{(⟨ aa , Baa ⟩) → refl;(⟨ bb , Bbb ⟩) → refl;(⟨ cc , Bcc ⟩) → refl}
+    ; to∘from = λ{(inj₁ Baa) → refl; (inj₂ (inj₁ Bbb)) → refl; (inj₂ (inj₂ Bcc)) → refl}
+    }
+```
 
 <!--
 ## An existential example
@@ -757,7 +798,33 @@ restated in this way.
 
 
 ```agda
--- 请将代码写在此处
+open import Data.Nat.Properties using (+-assoc; +-identityʳ; +-suc; +-comm)
+open Eq using (sym; cong)
+open Eq.≡-Reasoning using (begin_; step-≡-∣; step-≡-⟩; _∎)
+
+n+n≡2n : ∀ {n : ℕ} → n + n ≡ 2 * n
+n+n≡2n {zero} = refl
+n+n≡2n {suc n} rewrite +-identityʳ n = refl
+
+helper-∃-even : ∀ (m : ℕ) → 2 * (suc m) ≡ suc (suc (2 * m))
+helper-∃-even m =
+  begin
+    2 * (suc m)
+  ≡⟨ sym (n+n≡2n {suc m}) ⟩
+    (suc m) + (suc m)
+  ≡⟨ cong suc (+-suc m m) ⟩
+    suc (suc m + m)
+  ≡⟨ cong (suc ∘ suc) (n+n≡2n {m}) ⟩
+    suc (suc (2 * m))
+  ∎
+
+∃-even' : ∀ {n : ℕ} → ∃[ m ] (2 * m ≡ n) → even n
+∃-even' ⟨ zero , refl ⟩ = even-zero
+∃-even' ⟨ suc m , refl ⟩ rewrite helper-∃-even m = even-suc (odd-suc (∃-even' ⟨ m , refl ⟩))    
+
+∃-odd'  : ∀ {n : ℕ} → ∃[ m ] (2 * m + 1 ≡ n) → odd n
+∃-odd' ⟨ m , refl ⟩ rewrite +-identityʳ m | +-comm (m + m) 1 = odd-suc (∃-even' ⟨ m , sym (n+n≡2n {m}) ⟩)
+
 ```
 
 <!--
@@ -776,7 +843,33 @@ Show that `y ≤ z` holds if and only if there exists a `x` such that
 
 
 ```agda
--- 请将代码写在此处
+open import Data.Nat using (_≤_; z≤n; s≤s; pred)
+open Eq using (trans)
+
+∃-+-≤ : ∀ {y z : ℕ} → ∃[ x ] (x + y ≡ z → y ≤ z)
+∃-+-≤ {zero} {z} = ⟨ z , (λ _ → z≤n) ⟩
+∃-+-≤ {suc y} {zero} = ⟨ zero , (λ()) ⟩
+∃-+-≤ {suc y} {suc z} with ∃-+-≤ {y} {z}
+...                        | ⟨ x , eq→le ⟩ = ⟨ x , (λ{ x+s≡s → s≤s (eq→le (helper x+s≡s)) }) ⟩
+  where
+    helper : ∀ {x y z : ℕ} → x + suc y ≡ suc z → x + y ≡ z
+    helper x+s≡s = cong pred (trans (sym (+-suc _ _)) x+s≡s)
+
+∃-≤-+ : ∀ {y z : ℕ} → ∃[ x ] (y ≤ z → x + y ≡ z)
+∃-≤-+ {zero} {z} = ⟨ z , (λ _ → +-identityʳ z) ⟩
+∃-≤-+ {suc y} {zero} = ⟨ zero , (λ()) ⟩
+∃-≤-+ {suc y} {suc z} with ∃-≤-+ {y} {z}
+...                      | ⟨ x , le→eq ⟩ = ⟨ x , (λ{(s≤s y≤z) → helper x y z (le→eq y≤z)}) ⟩
+  where
+    helper : ∀ (m n p : ℕ) → m + n ≡ p → m + suc n ≡ suc p
+    helper m n p m+n≡p =
+      begin
+        m + suc n
+      ≡⟨ +-suc m n ⟩
+        suc (m + n)
+      ≡⟨ cong suc m+n≡p ⟩
+        suc p
+      ∎
 ```
 
 <!--
@@ -852,11 +945,11 @@ Show that existential of a negation implies negation of a universal:
 证明否定的存在量化蕴涵了全称量化的否定：
 
 ```agda
-postulate
-  ∃¬-implies-¬∀ : ∀ {A : Set} {B : A → Set}
-    → ∃[ x ] (¬ B x)
-      --------------
-    → ¬ (∀ x → B x)
+∃¬-implies-¬∀ : ∀ {A : Set} {B : A → Set}
+  → ∃[ x ] (¬ B x)
+    --------------
+  → ¬ (∀ x → B x)
+∃¬-implies-¬∀ ⟨ x' , ¬Bx ⟩ = λ{f → ¬Bx (f x')}
 ```
 
 <!--
@@ -864,6 +957,8 @@ Does the converse hold? If so, prove; if not, explain why.
 -->
 
 逆命题成立吗？如果成立，给出证明。如果不成立，解释为什么。
+
+不成立，无法从全称量词的否定中构造出使得 `B x` 不成立的 `x`。
 
 <!--
 #### Exercise `Bin-isomorphism` (stretch) {#Bin-isomorphism}
@@ -937,7 +1032,43 @@ which is a corollary of `≡Can`.
 
 
 ```agda
--- 请将代码写在此处
+open import plfa.part1.Induction using (Bin; inc; to; from; from-to-identity)
+open import plfa.part1.Relations using (One; Can; can-to; can-from-to)
+open Bin
+open One
+open Can
+
+≡One : ∀ {b : Bin} (o o′ : One b) → o ≡ o′
+≡One one-base one-base = refl
+≡One (one-O o) (one-O o') = cong one-O (≡One o o')
+≡One (one-I o) (one-I o') = cong one-I (≡One o o')
+
+≡Can : ∀ {b : Bin} (c c′ : Can b) → c ≡ c′
+≡Can zero zero = refl
+≡Can zero (one (one-O ()))
+≡Can (one (one-O ())) zero
+≡Can (one o) (one o') = cong one (≡One o o')
+
+-- proj₁ is not working for record ∃, maybe I shouldn't use latest version of
+-- Agda and stdlib
+proj-∃₁ : ∀ {A : Set} {B : A → Set} → ∃[ x ] B x → A
+proj-∃₁ = λ (⟨ x' , _ ⟩) → x'
+
+proj-∃₂ : ∀ {A : Set} {B : A → Set} (p : ∃[ x ] B x) → B (proj-∃₁ p)
+proj-∃₂ (⟨ _ , Bx ⟩) = Bx
+
+proj₁≡→Can≡ : {c c′ : ∃[ b ] Can b} → proj-∃₁ c ≡ proj-∃₁ c′ → c ≡ c′
+proj₁≡→Can≡ {⟨ b , cb ⟩} {⟨ b' , cb' ⟩} p≡p with p≡p
+... | refl = cong (λ c → ⟨ b , c ⟩) (≡Can cb cb')
+
+Bin-isomorphism : ℕ ≃ ∃[ b ] Can b
+Bin-isomorphism =
+  record
+    { to      = λ n → ⟨ to n , can-to {n} ⟩
+    ; from    = λ (⟨ b , _ ⟩) → from b
+    ; from∘to = λ n → (from-to-identity n)
+    ; to∘from = λ (⟨ b , Canb ⟩) → proj₁≡→Can≡ (can-from-to Canb)
+    }
 ```
 
 <!--
