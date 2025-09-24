@@ -515,14 +515,15 @@ Analogous to the function above, define a function to decide strict inequality:
 与上面的函数相似，定义一个判定严格不等性的函数：
 
 ```agda
-postulate
-  _<?_ : ∀ (m n : ℕ) → Dec (m < n)
-```
+¬s<s : ∀ {m n : ℕ} → ¬ (m < n) → ¬ (suc m < suc n)
+¬s<s ¬m<n (s<s m<n) = ¬m<n m<n
 
-
-
-```agda
--- 请将代码写在此处
+_<?_ : ∀ (m n : ℕ) → Dec (m < n)
+zero <? suc n = yes z<s
+m <? zero = no λ()
+suc m <? suc n with m <? n
+...               | yes m<n = yes (s<s m<n)
+...               | no ¬m<n = no (¬s<s ¬m<n)
 ```
 
 <!--
@@ -538,16 +539,17 @@ Define a function to decide whether two naturals are equal:
 定义一个函数来判定两个自然数是否相等。
 
 ```agda
-postulate
-  _≡ℕ?_ : ∀ (m n : ℕ) → Dec (m ≡ n)
+open Eq using (cong)
+open import Data.Nat using (pred)
+
+_≡ℕ?_ : ∀ (m n : ℕ) → Dec (m ≡ n)
+zero ≡ℕ? zero = yes refl
+zero ≡ℕ? suc n = no λ()
+suc m ≡ℕ? zero = no λ()
+suc m ≡ℕ? suc n with m ≡ℕ? n
+...                | yes m≡n = yes (cong suc m≡n)
+...                | no ¬m≡n = no λ sm≡sn → ¬m≡n (cong pred sm≡sn)
 ```
-
-
-
-```agda
--- 请将代码写在此处
-```
-
 
 <!--
 ## Decidables from booleans, and booleans from decidables
@@ -955,10 +957,19 @@ Show that erasure relates corresponding boolean and decidable operations:
 证明擦除将对应的布尔值和可判定的值的操作联系了起来：
 
 ```agda
-postulate
-  ∧-× : ∀ {A B : Set} (x : Dec A) (y : Dec B) → ⌊ x ⌋ ∧ ⌊ y ⌋ ≡ ⌊ x ×-dec y ⌋
-  ∨-⊎ : ∀ {A B : Set} (x : Dec A) (y : Dec B) → ⌊ x ⌋ ∨ ⌊ y ⌋ ≡ ⌊ x ⊎-dec y ⌋
-  not-¬ : ∀ {A : Set} (x : Dec A) → not ⌊ x ⌋ ≡ ⌊ ¬? x ⌋
+∧-× : ∀ {A B : Set} (x : Dec A) (y : Dec B) → ⌊ x ⌋ ∧ ⌊ y ⌋ ≡ ⌊ x ×-dec y ⌋
+∧-× (yes x) (yes y) = refl
+∧-× (no x) _ = refl
+∧-× (yes x) (no y) = refl
+
+∨-⊎ : ∀ {A B : Set} (x : Dec A) (y : Dec B) → ⌊ x ⌋ ∨ ⌊ y ⌋ ≡ ⌊ x ⊎-dec y ⌋
+∨-⊎ (yes x) y = refl
+∨-⊎ (no x) (yes y) = refl
+∨-⊎ (no x) (no y) = refl
+
+not-¬ : ∀ {A : Set} (x : Dec A) → not ⌊ x ⌋ ≡ ⌊ ¬? x ⌋
+not-¬ (yes x) = refl
+not-¬ (no x) = refl
 ```
 
 <!--
@@ -977,16 +988,22 @@ operation on booleans and decidables, and also show the corresponding erasure:
 并证明其对应的擦除：
 
 ```agda
-postulate
-  _iff_ : Bool → Bool → Bool
-  _⇔-dec_ : ∀ {A B : Set} → Dec A → Dec B → Dec (A ⇔ B)
-  iff-⇔ : ∀ {A B : Set} (x : Dec A) (y : Dec B) → ⌊ x ⌋ iff ⌊ y ⌋ ≡ ⌊ x ⇔-dec y ⌋
-```
+_iff_ : Bool → Bool → Bool
+true  iff true  = true
+false iff false = true
+_ iff _         = false
 
+_⇔-dec_ : ∀ {A B : Set} → Dec A → Dec B → Dec (A ⇔ B)
+yes x ⇔-dec yes y = yes (record {from = λ _ → x; to = λ _ → y})
+yes x ⇔-dec no y  = no λ (record {from = B→A; to = A→B}) → y (A→B x)
+no x  ⇔-dec yes y = no λ (record {from = B→A; to = A→B}) → x (B→A y)
+no x  ⇔-dec no y  = yes (record {from = λ B' → ⊥-elim (y B'); to = λ A' → ⊥-elim (x A')})
 
-
-```agda
--- 请将代码写在此处
+iff-⇔ : ∀ {A B : Set} (x : Dec A) (y : Dec B) → ⌊ x ⌋ iff ⌊ y ⌋ ≡ ⌊ x ⇔-dec y ⌋
+iff-⇔ (yes x) (yes y) = refl
+iff-⇔ (yes x) (no y)  = refl
+iff-⇔ (no x)  (yes y) = refl
+iff-⇔ (no x)  (no y)  = refl
 ```
 
 <!--
@@ -1110,6 +1127,23 @@ True Q = T ⌊ Q ⌋
 
 #### 练习 `False` （实践）
 
+```agda
+F : Bool → Set
+F false  =  ⊤
+F true   =  ⊥
+
+False : ∀ {Q} → Dec Q → Set
+False Q = F ⌊ Q ⌋
+
+toWitnessFalse : ∀ {A : Set} {D : Dec A} → F ⌊ D ⌋ → ¬ A
+toWitnessFalse {A} {no x} tt = x
+toWitnessFalse {A} {yes x} ()
+
+fromWitnessFalse : ∀ {A : Set} {D : Dec A} → ¬ A → F ⌊ D ⌋
+fromWitnessFalse {A} {yes x} ¬A = ¬A x
+fromWitnessFalse {A} {no x} r = tt
+```
+
 <!--
 Give analogues of `True`, `toWitness`, and `fromWitness` which work
 with *negated* properties. Call these `False`, `toWitnessFalse`, and
@@ -1152,6 +1186,42 @@ Show that both of the above are decidable.
     One? : ∀ (b : Bin) → Dec (One b)
     Can? : ∀ (b : Bin) → Dec (Can b)
 
+```agda
+open import plfa.part1.Induction using (Bin; inc; to; from; from-to-identity)
+open import plfa.part1.Relations using (One; Can; can-to; can-from-to)
+open Bin
+open One
+open Can
+
+One? : ∀ (b : Bin) → Dec (One b)
+One? ⟨⟩ = no λ()
+One? (b O) with One? b
+...           | yes Oneb = yes (one-O Oneb)
+...           | no ¬Oneb = no λ{(one-O Oneb) → ¬Oneb Oneb}
+One? (b I) with b        | One? b
+...           | ⟨⟩       | _        = yes one-base
+...           | (b' O)   | yes Oneb = yes (one-I Oneb)
+...           | (b' O)   | no ¬Oneb = no λ{ (one-I Oneb) → ¬Oneb Oneb }
+...           | (b' I)   | yes Oneb = yes (one-I Oneb)
+...           | (b' I)   | no ¬Oneb = no λ{ (one-I Oneb) → ¬Oneb Oneb }
+
+Can? : ∀ (b : Bin) → Dec (Can b)
+Can? ⟨⟩ = no (λ { (one ()) })
+Can? (⟨⟩ O) = yes zero
+Can? (⟨⟩ I) = yes (one one-base)
+Can? (b O) with b        | One? b
+...           | ⟨⟩       | _        = yes zero
+...           | (b' O)   | yes Oneb = yes (one (one-O Oneb))
+...           | (b' O)   | no ¬Oneb = no λ{(one (one-O Oneb)) → ¬Oneb Oneb}
+...           | (b' I)   | yes Oneb = yes (one (one-O Oneb))
+...           | (b' I)   | no ¬Oneb = no λ{(one (one-O Oneb)) → ¬Oneb Oneb}
+Can? (b I) with b        | One? b
+...           | ⟨⟩       | _        = yes (one one-base)
+...           | (b' O)   | yes Oneb = yes (one (one-I Oneb))
+...           | (b' O)   | no ¬Oneb = no λ{(one (one-I Oneb)) → ¬Oneb Oneb}
+...           | (b' I)   | yes Oneb = yes (one (one-I Oneb))
+...           | (b' I)   | no ¬Oneb = no λ{(one (one-I Oneb)) → ¬Oneb Oneb}
+```
 
 <!--
 ## Standard Library
