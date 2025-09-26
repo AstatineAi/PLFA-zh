@@ -583,7 +583,9 @@ reverse of the second appended to the reverse of the first:
     reverse (xs ++ ys) ≡ reverse ys ++ reverse xs
 
 ```agda
--- Your code goes here
+reverse-++-distrib : ∀ {A : Set} (xs ys : List A) → reverse (xs ++ ys) ≡ reverse ys ++ reverse xs
+reverse-++-distrib [] ys = sym (++-identityʳ (reverse ys))
+reverse-++-distrib (x ∷ xs) ys rewrite reverse-++-distrib xs ys = ++-assoc (reverse ys) (reverse xs) [ x ]
 ```
 
 
@@ -604,7 +606,11 @@ as the identity function.  Show that reverse is an involution:
     reverse (reverse xs) ≡ xs
 
 ```agda
--- Your code goes here
+reverse-involution : ∀ {A : Set} (xs : List A) → reverse (reverse xs) ≡ xs
+reverse-involution [] = refl
+reverse-involution (x ∷ xs)
+  rewrite reverse-++-distrib (reverse xs) [ x ]
+        | reverse-involution xs = refl
 ```
 
 
@@ -875,7 +881,23 @@ The last step of the proof requires extensionality.
 证明的最后一步需要外延性。
 
 ```agda
--- 请将代码写在此处
+open import plfa.part1.Isomorphism using (∀-extensionality)
+
+map-compose : ∀ {A B C : Set} (f : A → B) (g : B → C) → map (g ∘ f) ≡ map g ∘ map f
+map-compose {A} f g = ∀-extensionality helper
+  where
+    helper : (x : List A) → map (g ∘ f) x ≡ (map g ∘ map f) x
+    helper [] = refl
+    helper (x ∷ xs) =
+      begin
+        map (g ∘ f) (x ∷ xs)
+      ≡⟨⟩
+        ((g ∘ f) x) ∷ (map (g ∘ f) xs)
+      ≡⟨ cong (((g ∘ f) x) ∷_) (helper xs) ⟩
+        ((g ∘ f) x) ∷ ((map g ∘ map f) xs)
+      ≡⟨⟩
+        (map g ∘ map f) (x ∷ xs)
+      ∎
 ```
 
 <!--
@@ -893,7 +915,11 @@ Prove the following relationship between map and append:
     map f (xs ++ ys) ≡ map f xs ++ map f ys
 
 ```agda
--- 请将代码写在此处
+map-++-distribute :
+  ∀ {A B : Set} (xs : List A) (ys : List A) (f : A → B)
+  → map f (xs ++ ys) ≡ map f xs ++ map f ys
+map-++-distribute [] _ _ = refl
+map-++-distribute (x ∷ xs) ys f = cong (f x ∷_) (map-++-distribute xs ys f)
 ```
 
 <!--
@@ -924,7 +950,9 @@ Define a suitable map operator over trees:
     map-Tree : ∀ {A B C D : Set} → (A → C) → (B → D) → Tree A B → Tree C D
 
 ```agda
--- 请将代码写在此处
+map-Tree : ∀ {A B C D : Set} → (A → C) → (B → D) → Tree A B → Tree C D
+map-Tree f g (leaf x) = leaf (f x)
+map-Tree f g (node ls x rs) = node (map-Tree f g ls) (g x) (map-Tree f g rs)
 ```
 
 <!--
@@ -1067,7 +1095,8 @@ For example:
 
 
 ```agda
--- 请将代码写在此处
+product : List ℕ → ℕ
+product = foldr _*_ 1
 ```
 
 <!--
@@ -1083,13 +1112,10 @@ Show that fold and append are related as follows:
 证明折叠和附加有如下的关系：
 
 ```agda
-postulate
-  foldr-++ : ∀ {A B : Set} (_⊗_ : A → B → B) (e : B) (xs ys : List A) →
-    foldr _⊗_ e (xs ++ ys) ≡ foldr _⊗_ (foldr _⊗_ e ys) xs
-```
-
-```agda
--- 请将代码写在此处
+foldr-++ : ∀ {A B : Set} (_⊗_ : A → B → B) (e : B) (xs ys : List A) →
+  foldr _⊗_ e (xs ++ ys) ≡ foldr _⊗_ (foldr _⊗_ e ys) xs
+foldr-++ _⊗_ e [] ys = refl
+foldr-++ _⊗_ e (x ∷ xs) ys rewrite foldr-++ _⊗_ e xs ys = refl
 ```
 
 <!--
@@ -1118,6 +1144,24 @@ Show as a consequence of `foldr-++` above that
 #### Exercise `map-is-foldr`
 -->
 
+```agda
+foldr-∷ : ∀ {A : Set} (xs : List A) → foldr _∷_ [] xs ≡ xs
+foldr-∷ [] = refl
+foldr-∷ (x ∷ xs) rewrite foldr-∷ xs = refl
+
+foldr-∷-++ : ∀ {A : Set} (xs ys : List A) → xs ++ ys ≡ foldr _∷_ ys xs
+foldr-∷-++ xs ys =
+  begin
+    xs ++ ys
+  ≡⟨ sym (foldr-∷ (xs ++ ys)) ⟩
+    foldr _∷_ [] (xs ++ ys)
+  ≡⟨ foldr-++ _∷_ [] xs ys ⟩
+    foldr _∷_ (foldr _∷_ [] ys) xs
+  ≡⟨ cong (λ ls → foldr _∷_ ls xs) (foldr-∷ ys) ⟩
+    foldr _∷_ ys xs
+  ∎
+```
+
 #### 练习 `map-is-foldr`
 
 <!--
@@ -1127,7 +1171,9 @@ Show that map can be defined using fold:
 证明映射可以用折叠定义：
 
 ```agda
--- 请将代码写在此处
+map-is-foldr : ∀ {A B : Set} (f : A → B) (xs : List A) → map f xs ≡ foldr (λ x xs → f x ∷ xs) [] xs
+map-is-foldr f [] = refl
+map-is-foldr f (x ∷ xs) rewrite map-is-foldr f xs = refl
 ```
 
 <!--
@@ -1157,7 +1203,8 @@ The proof requires extensionality.
 此证明需要外延性。
 
 ```agda
--- 请将代码写在此处
+map-is-foldr-curry : ∀ {A B : Set} (f : A → B) → map f ≡ foldr (λ x xs → f x ∷ xs) []
+map-is-foldr-curry f = ∀-extensionality λ xs → map-is-foldr f xs
 ```
 
 <!--
@@ -1178,7 +1225,10 @@ Define a suitable fold function for the type of trees given earlier:
 
 
 ```agda
--- 请将代码写在此处
+fold-Tree : ∀ {A B C : Set} → (A → C) → (C → B → C → C) → Tree A B → C
+fold-Tree f-leaf f-merge (leaf x) = f-leaf x
+fold-Tree f-leaf f-merge (node ls x rs) =
+  f-merge (fold-Tree f-leaf f-merge ls) x (fold-Tree f-leaf f-merge rs)
 ```
 
 <!--
@@ -1196,7 +1246,12 @@ Demonstrate an analogue of `map-is-foldr` for the type of trees.
 
 
 ```agda
--- 请将代码写在此处
+map-is-foldr-Tree : ∀ {A B C D : Set} (t : Tree A B) (f : A → C) (g : B → D)
+  → map-Tree f g t ≡ fold-Tree (λ x → leaf (f x)) (λ ls x rs → node ls (g x) rs) t
+map-is-foldr-Tree (leaf x) f g = refl
+map-is-foldr-Tree (node ls x rs) f g
+  rewrite map-is-foldr-Tree ls f g
+        | map-is-foldr-Tree rs f g = refl
 ```
 
 <!--
@@ -1238,7 +1293,42 @@ equal to `n * (n ∸ 1) / 2`:
     sum (downFrom n) * 2 ≡ n * (n ∸ 1)
 
 ```agda
--- 请将代码写在此处
+open import Data.Nat.Properties using
+  (+-comm; *-comm; *-distribˡ-∸; n∸n≡0; *-identityʳ;
+   +-∸-assoc; +-∸-comm; ≤-refl; m≤m+n)
+
+downSum : ∀ (n : ℕ) → sum (downFrom n) * 2 ≡ n * (n ∸ 1)
+downSum zero = refl
+downSum (suc n) =
+  begin
+    sum (n ∷ downFrom n) * 2
+  ≡⟨⟩
+    (n + sum (downFrom n)) * 2
+  ≡⟨ *-distribʳ-+ 2 n (sum (downFrom n)) ⟩
+    n * 2 + sum (downFrom n) * 2
+  ≡⟨ cong ((n * 2) +_) (downSum n) ⟩
+    n * 2 + n * (n ∸ 1)
+  ≡⟨ cong (_+ (n * (n ∸ 1))) (*-comm n 2) ⟩
+    2 * n + n * (n ∸ 1)
+  ≡⟨ cong (_+ n * (n ∸ 1)) (cong (n +_) (+-identityʳ n)) ⟩
+    n + n + n * (n ∸ 1)
+  ≡⟨ cong (n + n +_) (*-distribˡ-∸ n n 1) ⟩
+    n + n + (n * n ∸ n * 1)
+  ≡⟨ cong (n + n +_) (cong (n * n ∸_) (*-identityʳ n)) ⟩
+    n + n + (n * n ∸ n)
+  ≡⟨ sym (+-∸-assoc (n + n) (helper n)) ⟩
+    (n + n + n * n) ∸ n
+  ≡⟨ cong (_∸ n) (+-assoc n n (n * n)) ⟩
+    (n + (n + n * n)) ∸ n
+  ≡⟨ +-∸-comm {n} (n + n * n) {n} ≤-refl ⟩
+    (n ∸ n) + (n + n * n)
+  ≡⟨ cong (_+ (n + n * n)) (n∸n≡0 n) ⟩
+    n + n * n
+  ∎
+  where
+    helper : ∀ (n : ℕ) → n ≤ n * n
+    helper zero = z≤n
+    helper (suc n) = s≤s (m≤m+n n (n * suc n))
 ```
 
 <!--
@@ -1384,7 +1474,9 @@ operations associate to the left rather than the right.  For example:
     foldl _⊗_ e [ x , y , z ]  =  ((e ⊗ x) ⊗ y) ⊗ z
 
 ```agda
--- 请将代码写在此处
+foldl : ∀ {A B : Set} → (B → A → B) → B → List A → B
+foldl _⊗_ e []        =  e
+foldl _⊗_ e (x ∷ xs)  =  foldl _⊗_ (e ⊗ x) xs
 ```
 
 
@@ -1405,7 +1497,35 @@ Show that if `_⊗_` and `e` form a monoid, then `foldr _⊗_ e` and
 
 
 ```agda
--- 请将代码写在此处
+foldl-monoid : ∀ {A : Set} (_⊗_ : A → A → A) (e : A) → IsMonoid _⊗_ e →
+  ∀ (xs : List A) (y : A) → foldl _⊗_ y xs ≡ y ⊗ foldl _⊗_ e xs
+foldl-monoid _⊗_ e ⊗-monoid [] y = sym (identityʳ ⊗-monoid y)
+foldl-monoid _⊗_ e ⊗-monoid (x ∷ xs) y =
+  begin
+    foldl _⊗_ (y ⊗ x) xs
+  ≡⟨ foldl-monoid _⊗_ e ⊗-monoid xs (y ⊗ x) ⟩
+    (y ⊗ x) ⊗ foldl _⊗_ e xs
+  ≡⟨ assoc ⊗-monoid y x (foldl _⊗_ e xs) ⟩
+    y ⊗ (x ⊗ foldl _⊗_ e xs)
+  ≡⟨ cong (y ⊗_) (sym (foldl-monoid _⊗_ e ⊗-monoid xs x)) ⟩
+    y ⊗ foldl _⊗_ x xs
+  ≡⟨ cong (λ x → y ⊗ foldl _⊗_ x xs) (sym (identityˡ ⊗-monoid x)) ⟩
+    y ⊗ foldl _⊗_ (e ⊗ x) xs
+  ∎
+
+foldr-monoid-foldl : ∀ {A : Set} (_⊗_ : A → A → A) (e : A) → IsMonoid _⊗_ e →
+  ∀ (xs : List A) → foldr _⊗_ e xs ≡ foldl _⊗_ e xs
+foldr-monoid-foldl _⊗_ e monoid-⊗ [] = refl
+foldr-monoid-foldl _⊗_ e monoid-⊗ (x ∷ xs) =
+  begin
+    x ⊗ foldr _⊗_ e xs
+  ≡⟨ cong (x ⊗_) (foldr-monoid-foldl _⊗_ e monoid-⊗ xs) ⟩
+    x ⊗ foldl _⊗_ e xs
+  ≡⟨ sym (foldl-monoid _⊗_ e monoid-⊗ xs x) ⟩
+    foldl _⊗_ x xs
+  ≡⟨ cong (λ x → foldl _⊗_ x xs) (sym (identityˡ monoid-⊗ x)) ⟩
+    foldl _⊗_ (e ⊗ x) xs
+  ∎
 ```
 
 
@@ -1617,7 +1737,30 @@ replacement for `_×_`.  As a consequence, demonstrate an equivalence relating
 
 
 ```agda
--- 请将代码写在此处
+open import Data.Empty using (⊥; ⊥-elim)
+open import Data.Sum using (_⊎_; inj₁; inj₂) renaming ([_,_] to case-⊎)
+
+Any-++-⇔ : ∀ {A : Set} {P : A → Set} (xs ys : List A) →
+  Any P (xs ++ ys) ⇔ (Any P xs ⊎ Any P ys)
+Any-++-⇔ xs ys =
+  record
+    { to   = to xs ys
+    ; from = from xs ys
+    }
+  where
+    to : ∀ {A : Set} {P : A → Set} (xs ys : List A) →
+      Any P (xs ++ ys) → (Any P xs ⊎ Any P ys)
+    to [] ys Pys = inj₂ Pys
+    to (x ∷ xs) ys (here Px) = inj₁ (here Px)
+    to (x ∷ xs) ys (there Pc) with to xs ys Pc
+    ...                          | (inj₁ Px) = inj₁ (there Px)
+    ...                          | (inj₂ Py) = inj₂ Py
+    from : ∀ {A : Set} {P : A → Set} (xs ys : List A) →
+      (Any P xs ⊎ Any P ys) → Any P (xs ++ ys)
+    from [] ys (inj₂ Py) = Py
+    from (x ∷ xs) ys (inj₁ (here Px)) = here Px
+    from (x ∷ xs) ys (inj₁ (there Pxs)) = there (from xs ys (inj₁ Pxs))
+    from (x ∷ xs) ys (inj₂ Py) = there (from xs ys (inj₂ Py))
 ```
 
 <!--
@@ -1635,7 +1778,24 @@ Show that the equivalence `All-++-⇔` can be extended to an isomorphism.
 
 
 ```agda
--- 请将代码写在此处
+All-++-≃ : ∀ {A : Set} {P : A → Set} (xs ys : List A) →
+  All P (xs ++ ys) ≃ (All P xs × All P ys)
+All-++-≃ xs ys =
+  record
+    { to      = _⇔_.to (All-++-⇔ xs ys)
+    ; from    = _⇔_.from (All-++-⇔ xs ys)
+    ; from∘to = from∘to xs ys
+    ; to∘from = to∘from xs ys
+    }
+  where
+    from∘to : ∀ {A : Set} {P : A → Set} (xs ys : List A) (Pxy : All P (xs ++ ys))
+      → _⇔_.from (All-++-⇔ xs ys) (_⇔_.to (All-++-⇔ xs ys) Pxy) ≡ Pxy
+    from∘to [] ys Pxy = refl
+    from∘to (x ∷ xs) ys (Px ∷ Pxy) = cong (Px ∷_) (from∘to xs ys Pxy)
+    to∘from : ∀ {A : Set} {P : A → Set} (xs ys : List A) (Pxy : All P xs × All P ys)
+      →  _⇔_.to (All-++-⇔ xs ys) (_⇔_.from (All-++-⇔ xs ys) Pxy) ≡ Pxy
+    to∘from [] ys ⟨ [] , Py ⟩ = refl
+    to∘from (x ∷ xs) ys ⟨ Px ∷ Pxs , Py ⟩ = cong (λ{(⟨ x , y ⟩) → ⟨ Px ∷ x , y ⟩}) (to∘from xs ys ⟨ Pxs , Py ⟩)
 ```
 
 <!--
@@ -1661,6 +1821,31 @@ to arbitrary levels, as described in the section on
 （你能明白为什么这里的 `_∘_` 被泛化到任意层级很重要吗？
 如[全体多态](/Equality/#unipoly)一节所述。）
 
+```agda
+-- 因为 Any P 类型为 List A → Set，因此想要对 ¬_ ∘ Any P 进行组合，必须能处理比 Set
+-- 高一级的情况
+¬Any⇔All¬ : ∀ {A : Set} {P : A → Set} (xs : List A) →
+  (¬_ ∘ Any P) xs ⇔ All (¬_ ∘ P) xs
+¬Any⇔All¬ xs =
+  record
+    { to    = to xs
+    ; from  = from xs
+    }
+  where
+    to : ∀ {A : Set} {P : A → Set} (xs : List A) →
+      (¬_ ∘ Any P) xs → All (¬_ ∘ P) xs
+    to [] ¬Any = []
+    to (x ∷ xs) ¬Any =
+      (λ Px → ¬Any (here Px)) ∷ to xs λ Anyxs → ¬Any (there Anyxs)
+    from : ∀ {A : Set} {P : A → Set} (xs : List A) →
+      All (¬_ ∘ P) xs → (¬_ ∘ Any P) xs
+    from [] All¬ = λ()
+    from (x ∷ xs) (¬x ∷ ¬xs) =
+      λ{ (here Px) → ¬x Px;
+         (there Pxs) → (from xs ¬xs) Pxs
+       }
+```
+
 <!--
 Do we also have the following?
 -->
@@ -1675,10 +1860,7 @@ If so, prove; if not, explain why.
 
 若成立，请证明；否则请解释原因。
 
-
-```agda
--- 请将代码写在此处
-```
+不成立，对空列表，All P 总是成立，而无法找出任何满足 ¬_ ∘ P 的元素。
 
 <!--
 #### Exercise `¬Any≃All¬` (stretch)
@@ -1695,7 +1877,24 @@ Show that the equivalence `¬Any⇔All¬` can be extended to an isomorphism.
 
 
 ```agda
--- 请将代码写在此处
+¬Any≃All¬ : ∀ {A : Set} {P : A → Set} (xs : List A) →
+  (¬_ ∘ Any P) xs ≃ All (¬_ ∘ P) xs
+¬Any≃All¬ xs =
+  record
+    { to      = _⇔_.to (¬Any⇔All¬ xs)
+    ; from    = _⇔_.from (¬Any⇔All¬ xs)
+    ; from∘to = from∘to xs
+    ; to∘from = to∘from xs
+    }
+  where
+    from∘to : ∀ {A : Set} {P : A → Set} (xs : List A) (¬Any : (¬_ ∘ Any P) xs)
+      → _⇔_.from (¬Any⇔All¬ xs) (_⇔_.to (¬Any⇔All¬ xs) ¬Any) ≡ ¬Any
+    from∘to [] ¬Any = refl
+    from∘to (x ∷ xs) ¬Any = refl
+    to∘from : ∀ {A : Set} {P : A → Set} (xs : List A) (All¬ : All (¬_ ∘ P) xs)
+      →  _⇔_.to (¬Any⇔All¬ xs) (_⇔_.from (¬Any⇔All¬ xs) All¬) ≡ All¬
+    to∘from [] [] = refl
+    to∘from (x ∷ xs) (Px ∷ Pxs) = cong (Px ∷_) (to∘from xs Pxs)
 ```
 
 <!--
@@ -1712,7 +1911,45 @@ Show that `All P xs` is isomorphic to `∀ x → x ∈ xs → P x`.
 
 
 ```agda
--- 请将代码写在此处
+All-∀ : ∀ {A : Set} {P : A → Set} (xs : List A) →
+  All P xs ≃ ∀ x → x ∈ xs → P x
+All-∀ xs =
+  record
+    { to        = to xs
+    ; from      = from xs
+    ; from∘to   = from∘to xs
+    ; to∘from   = to∘from xs
+    }
+  where
+    to : ∀ {A : Set} {P : A → Set} (xs : List A) →
+      All P xs → (x : A) → x ∈ xs → P x
+    to [] x x∈xs ()
+    to (x ∷ xs) (Px ∷ Pxs) x' (here Eqx) rewrite Eqx = Px
+    to (x ∷ xs) (Px ∷ Pxs) x' (there x∈xs) = to xs Pxs x' x∈xs
+
+    from : ∀ {A : Set} {P : A → Set} (xs : List A) →
+      ((x : A) → x ∈ xs → P x) → All P xs
+    from [] f = []
+    from (x ∷ xs) f = f x (here refl) ∷ from xs λ x' x∈xs → f x' (there x∈xs)
+
+    from∘to : ∀ {A : Set} {P : A → Set} (xs : List A) →
+      (x : All P xs) → from xs (to xs x) ≡ x
+    from∘to [] [] = refl
+    from∘to (x ∷ xs) (Px ∷ Pxs) = cong (Px ∷_) (from∘to xs Pxs)
+
+    open import plfa.part1.Isomorphism using (∀-extensionality)
+
+    to∘from : ∀ {A : Set} {P : A → Set} (xs : List A) →
+      (f : (x : A) → x ∈ xs → P x) → to xs (from xs f) ≡ f
+    to∘from [] f = ∀-extensionality λ x → ∀-extensionality λ()
+    to∘from {A} (x ∷ xs') f =
+      ∀-extensionality
+      λ x' → ∀-extensionality (helper x')
+        where
+        helper : (x' : A) (x∈xs : x' ∈ x ∷ xs') → to (x ∷ xs') (from (x ∷ xs') f) x' x∈xs ≡ f x' x∈xs
+        helper x' (here Eqx) rewrite Eqx = refl
+        helper x' (there Eqxs) =
+          cong (λ g → g x' Eqxs) (to∘from xs' (λ x'' x∈xs' → f x'' (there x∈xs')))
 ```
 
 
@@ -1728,17 +1965,13 @@ Show that `Any P xs` is isomorphic to `∃[ x ] (x ∈ xs × P x)`.
 
 请证明 `Any P xs` 同构于 `∃[ x ] (x ∈ xs × P x)`.
 
-
-```agda
--- 请将代码写在此处
-```
-
 <!--
 If so, prove; if not, explain why.
 -->
 
 如果成立，请证明；如果不成立，请解释原因。
 
+无法保证 from∘to 后满足那个性质的是同一个 x?
 
 <!--
 ## Decidability of All
@@ -1831,7 +2064,15 @@ for some element of a list.  Give their definitions.
 
 
 ```agda
--- 请将代码写在此处
+any : ∀ {A : Set} → (A → Bool) → List A → Bool
+any p = foldr _∨_ false ∘ map p
+
+Any? : ∀ {A : Set} {P : A → Set} → Decidable P → Decidable (Any P)
+Any? P? [] = no λ()
+Any? P? (x ∷ xs) with P? x   | Any? P? xs
+...                 | yes Px | _          = yes (here Px)
+...                 | _      | yes Pxs    = yes (there Pxs)
+...                 | no ¬Px | no ¬Pxs    = no λ{(here Px) → ¬Px Px; (there Pxs) → ¬Pxs Pxs}
 ```
 
 <!--
@@ -1903,7 +2144,14 @@ with their corresponding proofs.
 
 
 ```agda
--- 请将代码写在此处
+split : ∀ {A : Set} {P : A → Set} (P? : Decidable P) (zs : List A)
+  → ∃[ xs ] ∃[ ys ] ( merge xs ys zs × All P xs × All (¬_ ∘ P) ys )
+split P? [] = ⟨ [] , ⟨ [] , ⟨ [] , ⟨ [] , [] ⟩ ⟩ ⟩ ⟩
+split P? (x ∷ zs) with P? x   | split P? zs
+...                  | yes Px | ⟨ xs , ⟨ ys , ⟨ mergexy , ⟨ Allxs , Allnegys ⟩ ⟩ ⟩ ⟩
+                        = ⟨ x ∷ xs , ⟨ ys , ⟨ left-∷ mergexy , ⟨ Px ∷ Allxs , Allnegys ⟩ ⟩ ⟩ ⟩
+...                  | no ¬Px | ⟨ xs , ⟨ ys , ⟨ mergexy , ⟨ Allxs , Allnegys ⟩ ⟩ ⟩ ⟩
+                        = ⟨ xs , ⟨ x ∷ ys , ⟨ right-∷ mergexy , ⟨ Allxs , ¬Px ∷ Allnegys ⟩ ⟩ ⟩ ⟩
 ```
 
 
