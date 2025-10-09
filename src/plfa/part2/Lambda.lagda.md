@@ -341,7 +341,11 @@ defined earlier.
 
 
 ```agda
--- 请将代码写在此处
+mul : Term
+mul = μ "*" ⇒ ƛ "m" ⇒ ƛ "n" ⇒
+        case ` "m"
+          [zero⇒ `zero
+          |suc "m" ⇒ plus · ` "n" · (` "*" · ` "m" · ` "n")]
 ```
 
 <!--
@@ -364,7 +368,9 @@ definition may use `plusᶜ` as defined earlier (or may not
 
 
 ```agda
--- 请将代码写在此处
+mulᶜ : Term
+mulᶜ = ƛ "m" ⇒ ƛ "n" ⇒ ƛ "s" ⇒ ƛ "z" ⇒
+      ` "m" · (` "n" · ` "s") · ` "z"
 ```
 
 
@@ -448,6 +454,18 @@ Write out the definition of multiplication in the same style.
 -->
 
 用这样的形式写出乘法的定义。
+
+```agda
+mul′ : Term
+mul′ = μ′ * ⇒ ƛ′ m ⇒ ƛ′ n ⇒
+        case′ m
+          [zero⇒ `zero
+          |suc m ⇒ plus′ · n · (* · m · n)]
+  where
+    * = ` "*"
+    m = ` "m"
+    n = ` "n"
+```
 
 <!--
 FIXME: 形式化？正式？
@@ -943,8 +961,13 @@ What is the result of the following substitution?
 
 1. `` (ƛ "y" ⇒ ` "x" · (ƛ "x" ⇒ ` "x")) ``
 2. `` (ƛ "y" ⇒ ` "x" · (ƛ "x" ⇒ `zero)) ``
-3. `` (ƛ "y" ⇒ `zero · (ƛ "x" ⇒ ` "x")) ``
+    3. `` (ƛ "y" ⇒ `zero · (ƛ "x" ⇒ ` "x")) ``
 4. `` (ƛ "y" ⇒ `zero · (ƛ "x" ⇒ `zero)) ``
+
+```agda
+_ : (ƛ "y" ⇒ ` "x" · (ƛ "x" ⇒ ` "x")) [ "x" := `zero ] ≡ (ƛ "y" ⇒ `zero · (ƛ "x" ⇒ ` "x"))
+_ = refl
+```
 
 <!--
 #### Exercise `_[_:=_]′` (stretch)
@@ -966,7 +989,23 @@ substitution.
 
 
 ```agda
--- 请将代码写在此处
+_[_:=_]′ : Term → Id → Term → Term
+subst-under-binder : Id → Id → Term → Term → Term
+
+(` x) [ y := V ]′ with x ≟ y
+... | yes _         = V
+... | no  _         = ` x
+(ƛ x ⇒ N) [ y := V ]′ = ƛ x ⇒ subst-under-binder x y V N
+(L · M) [ y := V ]′  = (L [ y := V ]′) · (M [ y := V ]′)
+(`zero) [ y := V ]′  = `zero
+(`suc M) [ y := V ]′ = `suc (M [ y := V ]′)
+(case L [zero⇒ M |suc x ⇒ N ]) [ y := V ]′ =
+  case (L [ y := V ]′) [zero⇒ (M [ y := V ]′) |suc x ⇒ subst-under-binder x y V N ]
+(μ x ⇒ N) [ y := V ]′ = μ x ⇒ subst-under-binder x y V N
+
+subst-under-binder x y V N with x ≟ y
+... | yes _ = N
+... | no  _ = N [ y := V ]′
 ```
 
 
@@ -1166,9 +1205,14 @@ What does the following term step to?
 
     (ƛ "x" ⇒ ` "x") · (ƛ "x" ⇒ ` "x")  —→  ???
 
-1.  `` (ƛ "x" ⇒ ` "x") ``
+    1.  `` (ƛ "x" ⇒ ` "x") ``
 2.  `` (ƛ "x" ⇒ ` "x") · (ƛ "x" ⇒ ` "x") ``
 3.  `` (ƛ "x" ⇒ ` "x") · (ƛ "x" ⇒ ` "x") · (ƛ "x" ⇒ ` "x") ``
+
+```agda
+_ : (ƛ "x" ⇒ ` "x") · (ƛ "x" ⇒ ` "x")  —→ (ƛ "x" ⇒ ` "x")
+_ = β-ƛ V-ƛ
+```
 
 <!--
 What does the following term step to?
@@ -1179,9 +1223,13 @@ What does the following term step to?
     (ƛ "x" ⇒ ` "x") · (ƛ "x" ⇒ ` "x") · (ƛ "x" ⇒ ` "x")  —→  ???
 
 1.  `` (ƛ "x" ⇒ ` "x") ``
-2.  `` (ƛ "x" ⇒ ` "x") · (ƛ "x" ⇒ ` "x") ``
+    2.  `` (ƛ "x" ⇒ ` "x") · (ƛ "x" ⇒ ` "x") ``
 3.  `` (ƛ "x" ⇒ ` "x") · (ƛ "x" ⇒ ` "x") · (ƛ "x" ⇒ ` "x") ``
 
+```agda
+_ : (ƛ "x" ⇒ ` "x") · (ƛ "x" ⇒ ` "x") · (ƛ "x" ⇒ ` "x")  —→ (ƛ "x" ⇒ ` "x") · (ƛ "x" ⇒ ` "x")
+_ = ξ-·₁ (β-ƛ V-ƛ)
+```
 
 <!--
 What does the following term step to?  (Where `twoᶜ` and `sucᶜ` are as
@@ -1193,8 +1241,13 @@ defined above.)
     twoᶜ · sucᶜ · `zero  —→  ???
 
 1.  `` sucᶜ · (sucᶜ · `zero) ``
-2.  `` (ƛ "z" ⇒ sucᶜ · (sucᶜ · ` "z")) · `zero ``
+    2.  `` (ƛ "z" ⇒ sucᶜ · (sucᶜ · ` "z")) · `zero ``
 3.  `` `zero ``
+
+```agda
+_ : twoᶜ · sucᶜ · `zero —→ (ƛ "z" ⇒ sucᶜ · (sucᶜ · ` "z")) · `zero
+_ = ξ-·₁ (β-ƛ V-ƛ)
+```
 
 
 <!--
@@ -1348,8 +1401,35 @@ above embeds into the second. Why are they not isomorphic?
 
 
 ```agda
--- 请将代码写在此处
+open import plfa.part1.Isomorphism using (_≲_)
+open _≲_
+
+—↠≲—↠′ : ∀ {M N} → M —↠ N ≲ M —↠′ N
+—↠≲—↠′ =
+  record
+    { to    = to′
+    ; from  = from′
+    ; from∘to = from∘to′
+    }
+  where
+    to′ : ∀ {M N} → M —↠ N → M —↠′ N
+    to′ (M ∎) = refl′
+    to′ (L —→⟨ L—→M ⟩ M—↠N) = trans′ (step′ L—→M) (to′ M—↠N)
+    from′ : ∀ {M N} → M —↠′ N → M —↠ N
+    from′ {M} {N} (step′ M—→N) = M —→⟨ M—→N ⟩ N ∎
+    from′ {M} refl′ = M ∎
+    from′ {L} {N} (trans′ L—↠′M M—↠′N) = from′ L—↠′M ++ from′ M—↠′N
+      where
+        _++_ : ∀ {L M N} → L —↠ M → M —↠ N → L —↠ N
+        (M ∎) ++ M—↠N = M—↠N
+        (L —→⟨ L—→M ⟩ M—↠P) ++ P—↠N = L —→⟨ L—→M ⟩ (M—↠P ++ P—↠N)
+    from∘to′ : ∀ {M N} (M—↠N : M —↠ N) → from′ (to′ M—↠N) ≡ M—↠N
+    from∘to′ (M ∎) = refl
+    from∘to′ (L —→⟨ x ⟩ M—↠N) rewrite from∘to′ M—↠N = refl
 ```
+
+不是同构的，因为第二种定义不是闭包的最小集合，可以通过
+`trans′ x refl` 来构造多个描述相同闭包的项。
 
 <!--
 ## Confluence
@@ -1568,7 +1648,38 @@ Write out the reduction sequence demonstrating that one plus one is two.
 
 
 ```agda
--- 请将代码写在此处
+one : Term
+one = `suc `zero
+
+plus-example : plus · one · one —↠ two
+plus-example =
+  begin
+    plus · one · one
+  —→⟨ ξ-·₁ (ξ-·₁ β-μ) ⟩
+    (ƛ "m" ⇒ ƛ "n" ⇒
+      case ` "m" [zero⇒ ` "n" |suc "m" ⇒ `suc (plus · ` "m" · ` "n") ])
+        · one · one
+  —→⟨ ξ-·₁ (β-ƛ (V-suc V-zero)) ⟩
+    (ƛ "n" ⇒
+      case one [zero⇒ ` "n" |suc "m" ⇒ `suc (plus · ` "m" · ` "n") ])
+        · one
+  —→⟨ β-ƛ (V-suc V-zero) ⟩
+    case one [zero⇒ one |suc "m" ⇒ `suc (plus · ` "m" · one) ]
+  —→⟨ β-suc V-zero ⟩
+    `suc (plus · `zero · one)
+  —→⟨ ξ-suc (ξ-·₁ (ξ-·₁ β-μ)) ⟩
+    `suc ((ƛ "m" ⇒ ƛ "n" ⇒
+      case ` "m" [zero⇒ ` "n" |suc "m" ⇒ `suc (plus · ` "m" · ` "n") ])
+        · `zero · one)
+  —→⟨ ξ-suc (ξ-·₁ (β-ƛ V-zero)) ⟩
+    `suc ((ƛ "n" ⇒
+      case `zero [zero⇒ ` "n" |suc "m" ⇒ `suc (plus · ` "m" · ` "n") ])
+        · one)
+  —→⟨ ξ-suc (β-ƛ (V-suc V-zero)) ⟩
+    `suc (case `zero [zero⇒ one |suc "m" ⇒ `suc (plus · ` "m" · one) ])
+  —→⟨ ξ-suc β-zero ⟩
+    `suc `suc `zero
+  ∎
 ```
 
 <!--
@@ -1659,7 +1770,7 @@ Thus:
     `` ƛ "s" ⇒ ` "s" · (` "s"  · `zero) ``
 
   1. `` (`ℕ ⇒ `ℕ) ⇒ (`ℕ ⇒ `ℕ) ``
-  2. `` (`ℕ ⇒ `ℕ) ⇒ `ℕ ``
+      2. `` (`ℕ ⇒ `ℕ) ⇒ `ℕ ``
   3. `` `ℕ ⇒ (`ℕ ⇒ `ℕ) ``
   4. `` `ℕ ⇒ `ℕ ⇒ `ℕ ``
   5. `` `ℕ ⇒ `ℕ ``
@@ -1684,7 +1795,7 @@ Thus:
   3. `` `ℕ ⇒ (`ℕ ⇒ `ℕ) ``
   4. `` `ℕ ⇒ `ℕ ⇒ `ℕ ``
   5. `` `ℕ ⇒ `ℕ ``
-  6. `` `ℕ ``
+      6. `` `ℕ ``
 
   <!--
   Give more than one answer if appropriate.
@@ -1785,7 +1896,30 @@ to the list
 
 
 ```agda
--- 请将代码写在此处
+open import plfa.part1.Isomorphism using (_≃_)
+open import Data.Product.Base using (_,_)
+open _≃_
+
+Context-≃ : Context ≃ List (Id × Type)
+Context-≃ = record
+  { to      = to′
+  ; from    = from′
+  ; from∘to = from∘to′
+  ; to∘from = to∘from′
+  }
+  where
+    to′ : ∀ (c : Context) → List (Id × Type)
+    to′ ∅ = []
+    to′ (c , x ⦂ x₁) = (x , x₁) ∷ (to′ c)
+    from′ : ∀ (l : List (Id × Type)) → Context
+    from′ [] = ∅
+    from′ ((x , T) ∷ xs) = (from′ xs) , x ⦂ T
+    from∘to′ : ∀ (c : Context) → from′ (to′ c) ≡ c
+    from∘to′ ∅ = refl
+    from∘to′ (c , x ⦂ x₁) rewrite from∘to′ c = refl
+    to∘from′ : ∀ (l : List (Id × Type)) → to′ (from′ l) ≡ l
+    to∘from′ [] = refl
+    to∘from′ ((x , T) ∷ xs) rewrite to∘from′ xs = refl
 ```
 
 <!--
@@ -2330,8 +2464,11 @@ or explain why there is no such `A`.
 对于下面的每一条，如果可以推导，给出类型 `A`，否则说明为什么这样的 `A` 不存在。
 
 1. `` ∅ , "y" ⦂ `ℕ ⇒ `ℕ , "x" ⦂ `ℕ ⊢ ` "y" · ` "x" ⦂ A ``
+    `ℕ
 2. `` ∅ , "y" ⦂ `ℕ ⇒ `ℕ , "x" ⦂ `ℕ ⊢ ` "x" · ` "y" ⦂ A ``
+    不存在，无法对类型 `ℕ 的项进行应用
 3. `` ∅ , "y" ⦂ `ℕ ⇒ `ℕ ⊢ ƛ "x" ⇒ ` "y" · ` "x" ⦂ A ``
+    `ℕ ⇒ `ℕ
 
 <!--
 For each of the following, give types `A`, `B`, and `C` for which it is derivable,
@@ -2341,7 +2478,9 @@ or explain why there are no such types.
 对于下面的每一条，如果可以推导，给出类型 `A`、`B` 和 `C`，否则说明为什么这样的类型 不存在。
 
 1. `` ∅ , "x" ⦂ A ⊢ ` "x" · ` "x" ⦂ B ``
+不存在，若类型 A 为 T ⇒ T，则 T 为 T ⇒ T，无穷递归
 2. `` ∅ , "x" ⦂ A , "y" ⦂ B ⊢ ƛ "z" ⇒ ` "x" · (` "y" · ` "z") ⦂ C ``
+A 为 Q ⇒ R, B 为 P ⇒ Q, C 为 P ⇒ R
 
 
 <!--
@@ -2360,7 +2499,8 @@ showing that it is well typed.
 
 
 ```agda
--- 请将代码写在此处
+⊢mul : ∀ {Γ} → Γ ⊢ mul ⦂ `ℕ ⇒ `ℕ ⇒ `ℕ
+⊢mul = ⊢μ (⊢ƛ (⊢ƛ (⊢case (⊢` (S′ Z)) ⊢zero (⊢plus · ⊢` (S′ Z) · (⊢` (S′ (S′ (S′ Z))) · ⊢` Z · ⊢` (S′ Z))))))
 ```
 
 
@@ -2379,7 +2519,8 @@ showing that it is well typed.
 
 
 ```agda
--- 请将代码写在此处
+⊢mulᶜ : ∀ {Γ A} → Γ  ⊢ mulᶜ ⦂ Ch A ⇒ Ch A ⇒ Ch A
+⊢mulᶜ = ⊢ƛ (⊢ƛ (⊢ƛ (⊢ƛ (⊢` (S′ (S′ (S′ Z))) · (⊢` (S′ (S′ Z)) · ⊢` (S′ Z)) · ⊢` Z))))
 ```
 
 ## Unicode
