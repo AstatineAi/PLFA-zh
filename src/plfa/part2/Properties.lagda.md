@@ -38,7 +38,7 @@ open import Data.Sum.Base using (_⊎_; inj₁; inj₂)
 open import Relation.Nullary.Decidable using (Dec; yes; no)
 open import Relation.Nullary.Negation using (¬_; contradiction)
 open import Function.Base using (_∘_)
-open import plfa.part1.Isomorphism
+open import plfa.part1.Isomorphism using (_≃_)
 open import plfa.part2.Lambda
 ```
 
@@ -280,7 +280,35 @@ that is, the canonical forms are exactly the well-typed values.
 
 
 ```
--- 请将代码写在此处
+open _≃_
+
+Canonical-≃ : ∀ {V A} → Canonical V ⦂ A ≃ (∅ ⊢ V ⦂ A) × (Value V)
+Canonical-≃ = record
+  { to      = to′
+  ; from    = from′
+  ; from∘to = from∘to′
+  ; to∘from = to∘from′
+  }
+  where
+    to′ : ∀ {V A} → Canonical V ⦂ A → (∅ ⊢ V ⦂ A) × (Value V)
+    to′ (C-ƛ x) = ⟨ ⊢ƛ x , V-ƛ ⟩
+    to′ C-zero = ⟨ ⊢zero , V-zero ⟩
+    to′ (C-suc c) =
+      let
+      ⟨ ⊢A , VA ⟩ = to′ c
+      in ⟨ ⊢suc ⊢A , V-suc VA ⟩
+    from′ : ∀ {V A} → (∅ ⊢ V ⦂ A) × (Value V) → Canonical V ⦂ A
+    from′ ⟨ ⊢ƛ A , V-ƛ ⟩ = C-ƛ A
+    from′ ⟨ ⊢zero , V-zero ⟩ = C-zero
+    from′ ⟨ ⊢suc A , V-suc VA ⟩ = C-suc (from′ ⟨ A , VA ⟩)
+    from∘to′ : ∀ {V A} (CanVA : Canonical V ⦂ A) → from′ (to′ CanVA) ≡ CanVA
+    from∘to′ (C-ƛ x) = refl
+    from∘to′ C-zero = refl
+    from∘to′ (C-suc CanVA) rewrite from∘to′ CanVA = refl
+    to∘from′ : ∀ {V A} (⊢V×V : (∅ ⊢ V ⦂ A) × (Value V)) → to′ (from′ ⊢V×V) ≡ ⊢V×V
+    to∘from′ ⟨ ⊢ƛ A , V-ƛ ⟩ = refl
+    to∘from′ ⟨ ⊢zero , V-zero ⟩ = refl
+    to∘from′ ⟨ ⊢suc A , V-suc VA ⟩ rewrite to∘from′ ⟨ A , VA ⟩ = refl
 ```
 
 <!--
@@ -487,8 +515,23 @@ have formulated progress using disjunction and existentials:
 而不是为 `Progress M` 定义一个数据类型：
 
 ```agda
-postulate
-  progress′ : ∀ M {A} → ∅ ⊢ M ⦂ A → Value M ⊎ ∃[ N ](M —→ N)
+progress′ : ∀ M {A} → ∅ ⊢ M ⦂ A → Value M ⊎ ∃[ N ](M —→ N)
+progress′ _ (⊢` ())
+progress′ M (⊢ƛ ⊢N) = inj₁ V-ƛ
+progress′ (L · M) (⊢L · ⊢M) with progress′ L ⊢L
+...                           | inj₂ ⟨ L′ , L—→L′ ⟩ = inj₂ ⟨ L′ · M , ξ-·₁ L—→L′ ⟩
+...                           | inj₁ V-ƛ with progress′ M ⊢M
+...                                         | inj₁ VM = inj₂ ⟨ _ , β-ƛ VM ⟩
+...                                         | inj₂ ⟨ M′ , M—→M′ ⟩ = inj₂ ⟨ _ , ξ-·₂ V-ƛ M—→M′ ⟩
+progress′ M ⊢zero = inj₁ V-zero
+progress′ (`suc M) (⊢suc ⊢M) with progress′ M ⊢M
+...                            | inj₁ VM = inj₁ (V-suc VM)
+...                            | inj₂ ⟨ M′ , M—→M′ ⟩ = inj₂ ⟨ `suc M′ , ξ-suc M—→M′ ⟩
+progress′ (case L [zero⇒ M |suc x ⇒ N ]) (⊢case ⊢L ⊢M ⊢N) with progress′ L ⊢L
+...                                                           | inj₂ ⟨ L′ , L—→L′ ⟩ = inj₂ ⟨ case L′ [zero⇒ M |suc x ⇒ N ] , ξ-case L—→L′ ⟩
+...                                                           | inj₁ V-zero = inj₂ ⟨ M , β-zero ⟩
+...                                                           | inj₁ (V-suc v) = inj₂ ⟨ N [ x := _ ] , β-suc v ⟩
+progress′ M (⊢μ x) = inj₂ ⟨ _ , β-μ ⟩
 ```
 
 <!--
@@ -521,7 +564,22 @@ Show that `Progress M` is isomorphic to `Value M ⊎ ∃[ N ](M —→ N)`.
 
 
 ```agda
--- 请将代码写在此处
+Progress-≃ : ∀ {M} → Progress M ≃ Value M ⊎ ∃[ N ](M —→ N)
+Progress-≃ = record
+  { to       = to′
+  ; from     = from′
+  ; from∘to  = λ{(step x) → refl
+               ; (done x) → refl}
+  ; to∘from  = λ{(inj₁ x) → refl
+               ; (inj₂ y) → refl}
+  }
+  where
+    to′ : ∀ {M} → Progress M → Value M ⊎ ∃[ N ](M —→ N)
+    to′ (step x) = inj₂ ⟨ _ , x ⟩
+    to′ (done x) = inj₁ x
+    from′ : ∀ {M} → Value M ⊎ ∃[ N ](M —→ N) → Progress M
+    from′ (inj₁ x) = done x
+    from′ (inj₂ ⟨ M , M—→N ⟩) = step M—→N
 ```
 
 <!--
@@ -540,7 +598,7 @@ proof of `progress` above.
 
 
 ```agda
--- 请将代码写在此处
+-- 见上方 progress′ 定义处
 ```
 
 <!--
@@ -558,8 +616,15 @@ whether a well-typed term is a value:
 写一个程序判断一个良类型的项是否是一个值：
 
 ```agda
-postulate
-  value? : ∀ {A M} → ∅ ⊢ M ⦂ A → Dec (Value M)
+value? : ∀ {A M} → ∅ ⊢ M ⦂ A → Dec (Value M)
+value? (⊢ƛ ⊢M) = yes V-ƛ
+value? (⊢L · ⊢M) = no λ()
+value? ⊢zero = yes V-zero
+value? (⊢suc ⊢M) with value? ⊢M
+...                 | yes VM = yes (V-suc VM)
+...                 | no ¬VM = no λ{(V-suc VM) → ¬VM VM}
+value? (⊢case ⊢L ⊢M ⊢N) = no λ()
+value? (⊢μ ⊢M) = no λ()
 ```
 
 <!--
@@ -2109,7 +2174,18 @@ and preservation theorems for the simply typed lambda-calculus.
 
 
 ```agda
--- 请将代码写在此处
+postulate
+  progress′′ : ∀ {M A}
+    → ∅ ⊢ M ⦂ A
+    ------------
+    → Progress M
+
+postulate
+  preservation′ : ∀ {M N A}
+    → ∅ ⊢ M ⦂ A
+    → M —→ N
+    ------------
+    → ∅ ⊢ N ⦂ A
 ```
 
 <!--
@@ -2139,7 +2215,11 @@ with case expressions and one not involving case expressions.
 
 
 ```agda
--- 请将代码写在此处
+case1 : ¬ (∅ ⊢ (case `zero [zero⇒ `zero |suc "n" ⇒ (ƛ "x" ⇒ ` "x")]) ⦂ `ℕ)
+case1 (⊢case ⊢zero ⊢zero ())
+
+case2 : ¬ (∅ ⊢ (ƛ "x" ⇒ `zero) · (ƛ "x" ⇒ ` "x" · ` "x") ⦂ `ℕ)
+case2 (M · ⊢ƛ (⊢` Z · ⊢` (S x ())))
 ```
 
 
@@ -2178,11 +2258,23 @@ Using progress, it is easy to show that no well-typed term is stuck:
 使用可进性，很容易证明没有良类型的项会被卡住。
 
 ```agda
-postulate
-  unstuck : ∀ {M A}
-    → ∅ ⊢ M ⦂ A
-      -----------
-    → ¬ (Stuck M)
+unstuck : ∀ {M A}
+  → ∅ ⊢ M ⦂ A
+    -----------
+  → ¬ (Stuck M)
+unstuck (⊢ƛ ⊢M) ⟨ NM , ¬VM ⟩ = ¬VM V-ƛ
+unstuck (⊢L · ⊢M) ⟨ NLM , ¬VLM ⟩ with progress ⊢L
+...  | step L—→L′ = NLM (ξ-·₁ L—→L′)
+...  | done VL with progress ⊢M
+...    | step M—→M′ = NLM (ξ-·₂ VL M—→M′)
+unstuck (⊢ƛ ⊢L · ⊢M) ⟨ NLM , ¬VLM ⟩ | done VL | done VM = NLM (β-ƛ VM)
+unstuck ⊢zero ⟨ NM , ¬VM ⟩ = ¬VM V-zero
+unstuck (⊢suc ⊢M) ⟨ NM , ¬VM ⟩ = unstuck ⊢M ⟨ (λ {N} z → NM (ξ-suc z)) , (λ z → ¬VM (V-suc z)) ⟩
+unstuck (⊢case ⊢L ⊢M ⊢N) ⟨ NC , ¬VC ⟩ with progress ⊢L
+...  | step L—→L′ = NC (ξ-case L—→L′)
+...  | done V-zero = NC β-zero
+...  | done (V-suc VL) = NC (β-suc VL)
+unstuck (⊢μ ⊢M) ⟨ NM , ¬VM ⟩ = NM β-μ
 ```
 
 <!--
@@ -2194,12 +2286,13 @@ a well-typed term remains well typed:
 良类型的项依旧是良类型的。
 
 ```agda
-postulate
-  preserves : ∀ {M N A}
-    → ∅ ⊢ M ⦂ A
-    → M —↠ N
-      ---------
-    → ∅ ⊢ N ⦂ A
+preserves : ∀ {M N A}
+  → ∅ ⊢ M ⦂ A
+  → M —↠ N
+    ---------
+  → ∅ ⊢ N ⦂ A
+preserves ⊢M (M ∎) = ⊢M
+preserves ⊢L (L —→⟨ L—→M ⟩ M—↠N) = preserves (preserve ⊢L L—→M) M—↠N
 ```
 
 <!--
@@ -2211,12 +2304,12 @@ any number of reduction steps leads to a term that is not stuck:
 将得到一个不被卡住的项。
 
 ```agda
-postulate
-  wttdgs : ∀ {M N A}
-    → ∅ ⊢ M ⦂ A
-    → M —↠ N
-      -----------
-    → ¬ (Stuck N)
+wttdgs : ∀ {M N A}
+  → ∅ ⊢ M ⦂ A
+  → M —↠ N
+    -----------
+  → ¬ (Stuck N)
+wttdgs ⊢M M—↠N = unstuck (preserves ⊢M M—↠N)
 ```
 
 <!--
@@ -2247,7 +2340,8 @@ Give an example of an ill-typed term that does get stuck.
 
 
 ```agda
--- 请将代码写在此处
+stuck : Stuck (`zero · `zero)
+stuck = ⟨ (λ{(ξ-·₁ ()); (ξ-·₂ V-zero ())}) , (λ{()}) ⟩
 ```
 
 <!--
@@ -2261,12 +2355,6 @@ Provide proofs of the three postulates, `unstuck`, `preserves`, and `wttdgs` abo
 -->
 
 提供上文中 `unstuck`、`preserves` 和 `wttdgs` 三个假设的证明。
-
-
-
-```agda
--- 请将代码写在此处
-```
 
 <!--
 ## Reduction is deterministic
@@ -2463,11 +2551,11 @@ false, give a counterexample:
   - Preservation
 -->
 
-  - 确定性
+  - 确定性 假，任何本来可归约的项都多了归约到 zap 的可能性
 
   - 可进性
 
-  - 保型性
+  - 保型性 假，plus one `zero 可以归约到类型 A
 
 
 <!--
@@ -2508,11 +2596,11 @@ false, give a counterexample:
   - Preservation
 -->
 
-  - 确定性
+  - 确定性 假，在处理 M · N 时若 M 是一个 λ abs 则可以尝试归约 N 也可以尝试将 M 归约到 foo
 
   - 可进性
 
-  - 保型性
+  - 保型性 假，plus `zero `zero 可以归约成 `zero · `zero · `zero，无法赋型
 
 
 <!--
@@ -2544,7 +2632,7 @@ false, give a counterexample:
 
   - 确定性
 
-  - 可进性
+  - 可进性 假 ( (λx. x) (λx. x) ) · (λw. zero)
 
   - 保型性
 
