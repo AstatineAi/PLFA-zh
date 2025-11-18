@@ -877,7 +877,8 @@ de Bruijn representation.
 
 
 ```agda
--- 请将代码写在此处
+mul : ∀ {Γ} → Γ ⊢ `ℕ ⇒ `ℕ ⇒ `ℕ
+mul = μ ƛ ƛ (case (# 1) `zero (plus · # 1 · (# 3 · # 0 · # 1))) 
 ```
 
 <!--
@@ -1649,7 +1650,12 @@ values.
 
 
 ```agda
--- 请将代码写在此处
+V¬—→ : ∀ {Γ A} {M N : Γ ⊢ A}
+  → Value M
+  → ¬ (M —→ N)
+V¬—→ V-ƛ = λ ()
+V¬—→ V-zero = λ ()
+V¬—→ (V-suc V) (ξ-suc s) = V¬—→ V s
 ```
 
 <!--
